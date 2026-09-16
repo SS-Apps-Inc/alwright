@@ -1,0 +1,29 @@
+Options -MultiViews
+DirectoryIndex index.html
+
+RewriteEngine On
+
+# Always revalidate route HTML so Safari does not retain an old deployment.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>
+
+# Serve existing files and directories without rewriting them.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Map clean Expo Router paths such as /childsafety to /childsafety.html.
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+?)/?$ $1.html [L]
+
+# Map public user pages such as /abc123 to the Expo Router dynamic page.
+RewriteCond %{REQUEST_URI} !\.[^/]+$
+RewriteRule ^([^/]+)/?$ [userId].html [L]
+
+# Let the client-side router handle any remaining application paths.
+RewriteRule ^ index.html [L]

@@ -1,0 +1,70 @@
+# First: copy everything from .gitignore into this file
+
+# macOS
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Expo / Metro / cache
+node_modules
+node_modules/**
+.expo
+.expo-shared
+node_modules/.cache
+.metro-cache
+dist
+web-build
+
+# Tests / coverage
+coverage
+__tests__
+e2e
+
+# Docs / temp
+docs
+tmp
+temp
+
+# Local env files you do not need in cloud build
+.env.local
+.env.development.local
+.env.test.local
+
+# Big binary/source folders often accidentally included
+assets/raw
+assets/videos
+assets/psd
+assets/figma
+assets/source
+design
+mock-data
+samples
+backups
+archive
+screenshots
+screen-recordings
+
+# Native folders - ignore these ONLY if you are using Expo managed/prebuild workflow
+/android
+/ios
+android
+android/**
+ios
+ios/**
+
+# Editor junk
+.vscode
+.idea
+
+# If you have local builds, old APK/AAB outputs
+*.apk
+*.aab
+*.keystore
