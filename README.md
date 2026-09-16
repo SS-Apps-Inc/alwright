@@ -1,12 +1,24 @@
-# Alwright
+<p align="center">
+  <img src="./assets/images/icon.png" alt="Alwright logo" width="112" />
+</p>
 
-Alwright is a small social writing app for people who want to post thoughts without the usual social-feed noise. The app is intentionally simple: write a post, choose how your page looks, decide what is public, and let people read it from a clean public web page.
+<h1 align="center">Alwright</h1>
 
-The mobile app is where users sign in, post, edit their page, manage preferences, and handle billing. The web experience is public-facing: a landing page, a public feed, privacy/terms pages, and public user pages.
+<p align="center">
+  <strong>Where your thoughts land.</strong>
+</p>
+
+Alwright is a content creating app for people who want to post thoughts without the usual social-feed noise. The app is intentionally simple: create a post, choose how your page looks, decide what is public, and let people read it from a clean public web page.
+
+The mobile app is where users sign in, create posts, edit their page, and manage preferences. The web experience is public-facing: a landing page, a public feed, privacy/terms pages, and public user pages.
+
+For businesses, Alwright can become a simple public page of your own. Write something meaningful and let people see it behind your store door, on a QR code, in your window, or anywhere your customers already are.
 
 ## What We Are Building
 
-Alwright is not trying to be another attention-heavy social network. The main idea is:
+As of today, Alwright is not trying to be another attention-heavy social network. We are building a quieter place for content that feels more personal and intentional. We want each post to feel valuable, so people can connect more truthfully.
+
+The main idea is:
 
 - Write short posts with simple constraints.
 - Keep a personal feed that can auto-load the latest posts or let the user choose when to load them.
@@ -34,7 +46,13 @@ Mobile app areas:
 - Page preferences
 - Settings, billing, account deletion, and data export
 
-## Tech Stack
+## For Developers
+
+Alwright is a React Native project built with Expo and Expo Router. The goal is to keep one codebase for Android, iOS, and the public web experience while keeping each feature modular enough for contributors to understand and improve.
+
+The codebase is moving toward feature modules, a shared design system, a dedicated memory/cache layer, and a clean network boundary for Supabase calls.
+
+## Technology
 
 - Expo
 - React Native

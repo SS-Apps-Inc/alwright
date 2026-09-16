@@ -3,6 +3,7 @@ import Head from "expo-router/head";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Image,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -374,6 +375,25 @@ export default function MarketingHome() {
                 Where your thoughts land · Canada
               </Text>
               <Text style={styles.footerMeta}>support@alwright.cc</Text>
+              <View style={styles.developerCallout}>
+                <Text style={styles.developerQuestion}>
+                  Are you a software developer?
+                </Text>
+                <Pressable
+                  accessibilityLabel="Open Alwright GitHub repository"
+                  onPress={() =>
+                    Linking.openURL("https://github.com/SS-Apps-Inc/alwright")
+                  }
+                  style={({ pressed }) => [
+                    styles.developerLink,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Text style={styles.developerLinkText}>
+                    github.com/SS-Apps-Inc/alwright
+                  </Text>
+                </Pressable>
+              </View>
             </View>
             <PublicSiteLinks onDownloadPress={scrollToDownload} />
           </View>
@@ -919,5 +939,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 18,
     marginTop: 5,
+  },
+  developerCallout: {
+    marginTop: 18,
+    gap: 6,
+  },
+  developerQuestion: {
+    color: "#B8B8BE",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  developerLink: {
+    alignSelf: "flex-start",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F26A21",
+    paddingBottom: 2,
+  },
+  developerLinkText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
   },
 });
