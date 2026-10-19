@@ -1,13 +1,25 @@
 // use_home_posts_vm.ts
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Platform } from "react-native";
+import { Alert, Platform, Share } from "react-native";
+import { useAuthState } from "../../../app/auth/useAuthState";
 
 import { usePostsLiveSubscription } from "./use_posts_live_subscription";
-import { apiGetPostsPage } from "@/network/post/postsApi";
+import {
+  apiGetCountryPostsPage,
+  apiGetRandomCountryPostsPage,
+} from "@/network/post/postsApi";
+import {
+  apiGetMyCountryPreferences,
+  apiUpdateMyFeedCountries,
+} from "@/network/profile/profileApi";
 import { mapPostRowToUI, type PostUI } from "@/network/post/postMappers";
 import type { PostsPageCursor } from "@/network/post/postTypes";
 
-import { readHomePostsMemory, writeHomePostsMemory } from "@/memory";
+import {
+  readHomePostsMemory,
+  writeHomePostsMemory,
+  type HomeSinglePostSource,
+} from "@/memory";
 import { withPostDefaultsList } from "./home_posts_defaults";
 import { useHomeLayoutVM } from "./vm/use_home_layout_vm";
 import { useHomeSettingsVM } from "./vm/use_home_settings_vm";
@@ -15,8 +27,8 @@ import {
   getMainPostRatio,
   isListOnlyLayout,
 } from "@/features/posts/post_layout";
-
-const PAGE_SIZE = 30;
+import { getPreparedHomePosts } from "./prepare_home_posts";
+import { GOOGLE_PLAY_URL, PAGINATION } from "@/config";
 
 function getErrorMessage(error: unknown) {
   if (typeof error === "string") return error;
@@ -34,6 +46,10 @@ function getErrorMessage(error: unknown) {
 }
 
 export function useHomePostsVM() {
+  const auth = useAuthState();
+  const showCountryPreference = Platform.OS !== "web";
+  const countryFeatureAvailable = Platform.OS !== "web" && !!auth.user;
+  const prepared = countryFeatureAvailable ? null : getPreparedHomePosts();
   const layout = useHomeLayoutVM();
   const settings = useHomeSettingsVM();
 
@@ -41,27 +57,101 @@ export function useHomePostsVM() {
     listRef,
     currentOffsetRef,
     setCurrentPage,
+    goToPage: goToLayoutPage,
   } = layout;
+  const {
+    setSinglePostSource: persistSinglePostSource,
+    setFeedCountryCodes: persistFeedCountryCodes,
+  } = settings;
 
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(!prepared);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [posts, setPosts] = useState<PostUI[]>([]);
-  const [cursor, setCursor] = useState<PostsPageCursor>(null);
-  const [hasMore, setHasMore] = useState(true);
+  const [posts, setPosts] = useState<PostUI[]>(prepared?.posts ?? []);
+  const [cursor, setCursor] = useState<PostsPageCursor>(prepared?.cursor ?? null);
+  const [hasMore, setHasMore] = useState(prepared?.hasMore ?? true);
 
-  const [pendingPosts, setPendingPosts] = useState<PostUI[] | null>(null);
-  const [pendingCursor, setPendingCursor] = useState<PostsPageCursor>(null);
-  const [pendingHasMore, setPendingHasMore] = useState(true);
+  const [pendingPosts, setPendingPosts] = useState<PostUI[] | null>(
+    prepared?.pendingPosts ?? null,
+  );
+  const [pendingCursor, setPendingCursor] = useState<PostsPageCursor>(
+    prepared?.pendingCursor ?? null,
+  );
+  const [pendingHasMore, setPendingHasMore] = useState(
+    prepared?.pendingHasMore ?? true,
+  );
 
   const [checkingNewPosts, setCheckingNewPosts] = useState(false);
+  const [randomPost, setRandomPost] = useState<PostUI | null>(
+    prepared?.randomPost ?? null
+  );
+  const [randomLoading, setRandomLoading] = useState(false);
+  const [countryPreferencesReady, setCountryPreferencesReady] = useState(
+    !countryFeatureAvailable
+  );
 
   const postsRef = useRef<PostUI[]>([]);
   const cursorRef = useRef<PostsPageCursor>(null);
   const hasMoreRef = useRef(true);
   const settingsRef = useRef(settings.homeSettings);
+  const randomRequestIdRef = useRef(0);
+  const randomInitializedRef = useRef(!!prepared?.randomPost);
+
+  const selectedCountryCodes = countryFeatureAvailable
+    ? settings.homeSettings.feedCountryCodes
+    : [];
+  const selectedCountryKey = selectedCountryCodes.join(",");
+
+  const getPostsPage = useCallback(
+    (pageSize: number, pageCursor: PostsPageCursor) =>
+      apiGetCountryPostsPage(selectedCountryCodes, pageSize, pageCursor),
+    // The key is stable when the selected country list has not changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedCountryKey]
+  );
+
+  const getRandomPostsPage = useCallback(
+    (pageSize: number) =>
+      apiGetRandomCountryPostsPage(selectedCountryCodes, pageSize, null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedCountryKey]
+  );
+
+  useEffect(() => {
+    if (!auth.ready) return;
+
+    if (!countryFeatureAvailable) {
+      persistFeedCountryCodes([]);
+      setCountryPreferencesReady(true);
+      return;
+    }
+
+    let active = true;
+    setCountryPreferencesReady(false);
+
+    apiGetMyCountryPreferences()
+      .then((preferences) => {
+        if (!active) return;
+        persistFeedCountryCodes(preferences.feedCountryCodes);
+      })
+      .catch((error) => {
+        console.error("Country preferences load failed", error);
+      })
+      .finally(() => {
+        if (active) setCountryPreferencesReady(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    auth.ready,
+    auth.user?.id,
+    countryFeatureAvailable,
+    persistFeedCountryCodes,
+  ]);
 
   useEffect(() => {
     postsRef.current = posts;
@@ -81,8 +171,14 @@ export function useHomePostsVM() {
 
   const layoutMode = settings.homeSettings.layoutMode;
   const singlePostLayout = settings.homeSettings.showOnlyLastPost;
+  const randomSinglePost =
+    singlePostLayout && settings.homeSettings.singlePostSource === "random";
   const listOnlyLayout = !singlePostLayout && isListOnlyLayout(layoutMode);
-  const mainPost = listOnlyLayout ? null : posts[0] ?? null;
+  const mainPost = randomSinglePost
+    ? randomPost
+    : listOnlyLayout
+    ? null
+    : posts[0] ?? null;
   const listPosts = useMemo(
     () => (singlePostLayout ? [] : listOnlyLayout ? posts : posts.slice(1)),
     [listOnlyLayout, posts, singlePostLayout]
@@ -138,6 +234,51 @@ export function useHomePostsVM() {
     []
   );
 
+  const loadRandomPost = useCallback(async () => {
+    const requestId = ++randomRequestIdRef.current;
+    setRandomLoading(true);
+
+    try {
+      const response = await getRandomPostsPage(1);
+      const nextPost = response.rows[0]
+        ? withPostDefaultsList([mapPostRowToUI(response.rows[0])])[0]
+        : null;
+
+      if (requestId === randomRequestIdRef.current) {
+        setRandomPost(nextPost);
+      }
+    } catch (error) {
+      console.error("loadRandomPost failed", error);
+    } finally {
+      if (requestId === randomRequestIdRef.current) {
+        setRandomLoading(false);
+      }
+    }
+  }, [getRandomPostsPage]);
+
+  useEffect(() => {
+    randomInitializedRef.current = false;
+    setRandomPost(null);
+  }, [selectedCountryKey]);
+
+  const setSinglePostSource = useCallback(
+    (value: HomeSinglePostSource) => {
+      persistSinglePostSource(value);
+
+      if (value === "random") {
+        randomInitializedRef.current = true;
+        void loadRandomPost();
+      }
+    },
+    [loadRandomPost, persistSinglePostSource]
+  );
+
+  useEffect(() => {
+    if (!randomSinglePost || randomInitializedRef.current) return;
+    randomInitializedRef.current = true;
+    void loadRandomPost();
+  }, [loadRandomPost, randomSinglePost]);
+
   const resetListPosition = useCallback(
     (animated: boolean) => {
       setCurrentPage(0);
@@ -154,24 +295,43 @@ export function useHomePostsVM() {
   );
 
   const loadInitial = useCallback(async () => {
+    if (!countryPreferencesReady) return;
+
+    if (
+      !countryFeatureAvailable &&
+      selectedCountryCodes.length === 0 &&
+      getPreparedHomePosts()
+    ) {
+      setInitialLoading(false);
+      return;
+    }
+
     setInitialLoading(true);
     setErrorMessage(null);
 
     try {
       const memory = readHomePostsMemory();
+      const memoryMatchesCountries =
+        memory.settings.feedCountryCodes.join(",") === selectedCountryKey;
 
-      if (memory.posts.length > 0) {
+      if (memory.posts.length > 0 && memoryMatchesCountries) {
         setPosts(withPostDefaultsList(memory.posts));
         setCursor(memory.cursor);
         setHasMore(memory.hasMore);
         setInitialLoading(false);
       }
 
-      const res = await apiGetPostsPage(PAGE_SIZE, null);
+      if (!memoryMatchesCountries) {
+        setPosts([]);
+        setCursor(null);
+        setHasMore(true);
+      }
+
+      const res = await getPostsPage(PAGINATION.homePosts, null);
       const fetched = withPostDefaultsList(res.rows.map(mapPostRowToUI));
       const nextHasMore = !!res.nextCursor && fetched.length > 0;
 
-      if (memory.posts.length === 0) {
+      if (memory.posts.length === 0 || !memoryMatchesCountries) {
         setPosts(fetched);
         setCursor(res.nextCursor);
         setHasMore(nextHasMore);
@@ -206,7 +366,15 @@ export function useHomePostsVM() {
     } finally {
       setInitialLoading(false);
     }
-  }, [saveSnapshot, resetListPosition]);
+  }, [
+    countryPreferencesReady,
+    countryFeatureAvailable,
+    getPostsPage,
+    resetListPosition,
+    saveSnapshot,
+    selectedCountryCodes.length,
+    selectedCountryKey,
+  ]);
 
   useEffect(() => {
     void loadInitial();
@@ -218,7 +386,7 @@ export function useHomePostsVM() {
     setCheckingNewPosts(true);
 
     try {
-      const res = await apiGetPostsPage(PAGE_SIZE, null);
+      const res = await getPostsPage(PAGINATION.homePosts, null);
       const fetched = withPostDefaultsList(res.rows.map(mapPostRowToUI));
       const nextHasMore = !!res.nextCursor && fetched.length > 0;
 
@@ -251,7 +419,7 @@ export function useHomePostsVM() {
     } finally {
       setCheckingNewPosts(false);
     }
-  }, [checkingNewPosts, saveSnapshot, resetListPosition]);
+  }, [checkingNewPosts, getPostsPage, saveSnapshot, resetListPosition]);
 
   const applyPendingPosts = useCallback(() => {
     if (!pendingPosts || pendingPosts.length === 0) return;
@@ -319,7 +487,7 @@ export function useHomePostsVM() {
     setErrorMessage(null);
 
     try {
-      const res = await apiGetPostsPage(PAGE_SIZE, cursor);
+      const res = await getPostsPage(PAGINATION.homePosts, cursor);
       const fetched = withPostDefaultsList(res.rows.map(mapPostRowToUI));
 
       if (fetched.length === 0) {
@@ -349,6 +517,7 @@ export function useHomePostsVM() {
     initialLoading,
     loadingMore,
     posts,
+    getPostsPage,
     saveSnapshot,
   ]);
 
@@ -358,7 +527,12 @@ export function useHomePostsVM() {
     setRefreshing(true);
 
     try {
-      const res = await apiGetPostsPage(PAGE_SIZE, null);
+      if (randomSinglePost) {
+        await loadRandomPost();
+        return;
+      }
+
+      const res = await getPostsPage(PAGINATION.homePosts, null);
       const fetched = withPostDefaultsList(res.rows.map(mapPostRowToUI));
       const nextHasMore = !!res.nextCursor && fetched.length > 0;
 
@@ -376,25 +550,81 @@ export function useHomePostsVM() {
     } finally {
       setRefreshing(false);
     }
-  }, [refreshing, saveSnapshot, resetListPosition]);
+  }, [
+    loadRandomPost,
+    getPostsPage,
+    randomSinglePost,
+    refreshing,
+    saveSnapshot,
+    resetListPosition,
+  ]);
 
   const goToPage = useCallback(
     (page: number) => {
-      layout.goToPage(page, listPosts.length);
+      goToLayoutPage(page, listPosts.length);
     },
-    [layout.goToPage, listPosts.length]
+    [goToLayoutPage, listPosts.length]
   );
 
   usePostsLiveSubscription({
     enabled: true,
+    countryCodes: selectedCountryCodes,
     onNewPost: handleIncomingLivePost,
   });
+
+  const setFeedCountryCodes = useCallback(
+    async (countryCodes: string[]) => {
+      const previous = settingsRef.current.feedCountryCodes;
+      settingsRef.current = {
+        ...settingsRef.current,
+        feedCountryCodes: countryCodes,
+      };
+      persistFeedCountryCodes(countryCodes);
+
+      try {
+        const updated = await apiUpdateMyFeedCountries(countryCodes);
+        settingsRef.current = {
+          ...settingsRef.current,
+          feedCountryCodes: updated.feedCountryCodes,
+        };
+        persistFeedCountryCodes(updated.feedCountryCodes);
+      } catch (error: any) {
+        settingsRef.current = {
+          ...settingsRef.current,
+          feedCountryCodes: previous,
+        };
+        persistFeedCountryCodes(previous);
+        Alert.alert(
+          "Couldn’t update countries",
+          error?.message ?? "Please try again."
+        );
+      }
+    },
+    [persistFeedCountryCodes]
+  );
+
+  const inviteForeignFriend = useCallback(async () => {
+    const referralPhone = auth.user?.phone;
+    if (!referralPhone) return;
+
+    try {
+      await Share.share({
+        message:
+          `Join me on Alwright and share what is happening where you are. ` +
+          `Download the app, then enter ${referralPhone} under “Referred by?” ` +
+          `when you sign up so I can receive one month of Pro. ` +
+          GOOGLE_PLAY_URL,
+      });
+    } catch (error) {
+      console.error("Invite share failed", error);
+    }
+  }, [auth.user?.phone]);
 
   return {
     ...layout,
     ...settings,
 
-    initialLoading,
+    initialLoading: initialLoading || (randomSinglePost && randomLoading),
     loadingMore,
     refreshing,
     errorMessage,
@@ -403,7 +633,7 @@ export function useHomePostsVM() {
     listPosts,
     hasMore,
 
-    hasPendingNewPosts,
+    hasPendingNewPosts: randomSinglePost ? false : hasPendingNewPosts,
     pendingNewPostCount,
     applyPendingPosts,
     checkForNewPosts,
@@ -412,6 +642,12 @@ export function useHomePostsVM() {
     goToPage,
     refreshPosts,
     checkingNewPosts,
+    setSinglePostSource,
+    setFeedCountryCodes,
+    selectedCountryCodes,
+    showCountryPreference,
+    countryFeatureAvailable,
+    inviteForeignFriend,
 
     showList,
     showMainPost,

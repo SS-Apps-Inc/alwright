@@ -8,7 +8,7 @@ export type PostRow = {
 
   bg_color: string | null; // hex code, e.g. #ff0000
   bg_opacity: number | string;
-  radius: string | null; // rectangle, circle, rounded
+  radius: string | null; // rectangle, circle, rounded, wavy
 
   font_color: string | null;
 
@@ -24,5 +24,11 @@ export type CreatePostInput = {
 
 export type PostsPageCursor = {
   createdAtMs: number;
+  id: string;
+} | null;
+
+export type RandomPostsPageCursor = {
+  seed: string;
+  score: string;
   id: string;
 } | null;

@@ -12,8 +12,9 @@ import {
 import { Link, type Href } from "expo-router";
 
 import { PublicSiteLinks } from "@/features/marketing/public_site_links";
+import { SUPPORT_EMAIL, media } from "@/config";
 
-export const SUPPORT_EMAIL = "support@alwright.cc";
+export { SUPPORT_EMAIL } from "@/config";
 
 export function ExternalLink({
   href,
@@ -133,15 +134,26 @@ export function LegalPolicyPage({
     >
       <View style={styles.page}>
         <View style={styles.header}>
-          <Image
-            accessibilityLabel="Alwright"
-            source={require("../../../assets/images/icon.png")}
-            style={styles.logo}
-          />
-          <View style={styles.brandText}>
-            <Text style={styles.brand}>ALWRIGHT</Text>
-            <Text style={styles.kicker}>{kicker}</Text>
-          </View>
+          <Link href="/" asChild>
+            <Pressable
+              accessibilityLabel="Go to Alwright home page"
+              accessibilityRole="link"
+              style={({ pressed }) => [
+                styles.headerBrand,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Image
+                accessibilityLabel="Alwright"
+                source={media.appIcon}
+                style={styles.logo}
+              />
+              <View style={styles.brandText}>
+                <Text style={styles.brand}>ALWRIGHT</Text>
+                <Text style={styles.kicker}>{kicker}</Text>
+              </View>
+            </Pressable>
+          </Link>
           <View style={styles.regionBadge}>
             <Text style={styles.regionBadgeText}>CANADA</Text>
           </View>
@@ -203,8 +215,12 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 13,
   },
-  brandText: {
+  headerBrand: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  brandText: {
     marginLeft: 12,
   },
   brand: {

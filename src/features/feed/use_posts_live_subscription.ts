@@ -5,16 +5,22 @@ import { supabase } from "@/network/supabaseClient";
 import { mapPostRowToUI, type PostUI } from "@/network/post/postMappers";
 import { withPostDefaults } from "./home_posts_defaults";
 import {
+  apiCanUserAppearInCountryFeed,
   apiGetPublicMyPostsPageSettings,
   mapMyPostsPageSettingsRow,
 } from "@/network/post/postsApi";
 
 type Args = {
   enabled: boolean;
+  countryCodes?: string[];
   onNewPost: (post: PostUI) => void;
 };
 
-export function usePostsLiveSubscription({ enabled, onNewPost }: Args) {
+export function usePostsLiveSubscription({
+  enabled,
+  countryCodes = [],
+  onNewPost,
+}: Args) {
   const onNewPostRef = useRef(onNewPost);
   onNewPostRef.current = onNewPost;
 
@@ -22,9 +28,12 @@ export function usePostsLiveSubscription({ enabled, onNewPost }: Args) {
     if (!enabled) return;
 
     let disposed = false;
+    const channelName = `posts-live-inserts-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}`;
 
     const channel = supabase
-      .channel("posts-live-inserts")
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -48,6 +57,12 @@ export function usePostsLiveSubscription({ enabled, onNewPost }: Args) {
                 onNewPostRef.current(mapped);
                 return;
               }
+
+              const canAppear = await apiCanUserAppearInCountryFeed(
+                userId,
+                countryCodes
+              );
+              if (!canAppear || disposed) return;
 
               const settingsRow = await apiGetPublicMyPostsPageSettings(userId);
               const settings = mapMyPostsPageSettingsRow(settingsRow);
@@ -90,5 +105,5 @@ export function usePostsLiveSubscription({ enabled, onNewPost }: Args) {
       appStateSub?.remove();
       supabase.removeChannel(channel);
     };
-  }, [enabled]);
+  }, [countryCodes, enabled]);
 }

@@ -11,6 +11,7 @@ import {
   Clipboard,
 } from "react-native";
 import { useRouter } from "expo-router";
+import Svg, { Path } from "react-native-svg";
 import type { PostUI } from "@/network/post/postMappers";
 import { colors, typography } from "@/design-system";
 import { getProfileIconLabel } from "@/features/profile/profile_icon";
@@ -35,6 +36,7 @@ type Props = {
   showActions?: boolean;
   onEdit?: (post: PostUI) => void;
   onDelete?: (post: PostUI) => void;
+  onLongPress?: (post: PostUI) => void;
   width?: number | string;
   height?: number | string;
   minFontSize?: number;
@@ -44,7 +46,73 @@ type Props = {
   showCopyControl?: boolean;
   style?: any;
 
+  onPressIn?: () => void;
+  onPressOut?: () => void;
+
 };
+
+function getWavyRectPath(width: number, height: number) {
+  if (width <= 0 || height <= 0) return "";
+
+  const inset = Math.min(12, Math.max(7, Math.min(width, height) * 0.065));
+  const amplitude = inset * 0.9;
+  const corner = Math.min(22, width * 0.16, height * 0.16);
+  const left = inset;
+  const right = width - inset;
+  const top = inset;
+  const bottom = height - inset;
+  let path = `M ${left + corner} ${top}`;
+
+  const horizontal = (from: number, to: number, y: number, outward: number) => {
+    const count = Math.max(1, Math.round(Math.abs(to - from) / 24));
+    const step = (to - from) / count;
+    for (let index = 0; index < count; index += 1) {
+      const x = from + step * index;
+      path += ` C ${x + step * 0.25} ${y + amplitude * outward}`;
+      path += ` ${x + step * 0.75} ${y - amplitude * outward}`;
+      path += ` ${x + step} ${y}`;
+    }
+  };
+
+  const vertical = (from: number, to: number, x: number, outward: number) => {
+    const count = Math.max(1, Math.round(Math.abs(to - from) / 24));
+    const step = (to - from) / count;
+    for (let index = 0; index < count; index += 1) {
+      const y = from + step * index;
+      path += ` C ${x + amplitude * outward} ${y + step * 0.25}`;
+      path += ` ${x - amplitude * outward} ${y + step * 0.75}`;
+      path += ` ${x} ${y + step}`;
+    }
+  };
+
+  horizontal(left + corner, right - corner, top, -1);
+  path += ` Q ${right} ${top} ${right} ${top + corner}`;
+  vertical(top + corner, bottom - corner, right, 1);
+  path += ` Q ${right} ${bottom} ${right - corner} ${bottom}`;
+  horizontal(right - corner, left + corner, bottom, 1);
+  path += ` Q ${left} ${bottom} ${left} ${bottom - corner}`;
+  vertical(bottom - corner, top + corner, left, -1);
+  path += ` Q ${left} ${top} ${left + corner} ${top} Z`;
+  return path;
+}
+
+function WavyBackground({
+  width,
+  height,
+  fill,
+}: {
+  width: number;
+  height: number;
+  fill: string;
+}) {
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+        <Path d={getWavyRectPath(width, height)} fill={fill} />
+      </Svg>
+    </View>
+  );
+}
 
 export function PostCard({
   post,
@@ -52,6 +120,7 @@ export function PostCard({
   showActions = false,
   onEdit,
   onDelete,
+  onLongPress,
   width = "100%",
   height = 360,
   minFontSize = getMinDescriptionFontSize(),
@@ -60,6 +129,8 @@ export function PostCard({
   showProfileControl = true,
   showCopyControl = true,
   style,
+  onPressIn,
+  onPressOut,
 }: Props) {
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -118,8 +189,7 @@ export function PostCard({
   const showProfileIcon =
     showPublicControls && showProfileControl && post.profileLinksEnabled;
   const showCopyIcon = showPublicControls && showCopyControl && post.postCopyEnabled;
-  const hasPublicControls = showCopyIcon || showProfileIcon;
-  const descriptionTopPadding = hasPublicControls ? 36 : 10;
+  const descriptionTopPadding = 10;
   const descriptionBottomPadding = hasWho ? 8 : 12;
 
   const actualTextHeight = useMemo(() => {
@@ -173,24 +243,19 @@ export function PostCard({
     router.push(`/${post.userId}`);
   }
 
-  const publicControlsOffset = useMemo(() => {
-    if (post.bgRadius !== "circle") return null;
-
-    return {
-      top: Math.max(8, shapeInsets.top - 4),
-      right: Math.max(8, shapeInsets.right - 4),
-    };
-  }, [post.bgRadius, shapeInsets.right, shapeInsets.top]);
-
   return (
-    <View
+    <Pressable
       onLayout={onCardLayout}
+      onLongPress={onLongPress ? () => onLongPress(post) : undefined}
+      delayLongPress={350}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
       style={[
         styles.card,
         {
           width,
           height,
-          backgroundColor: bg,
+          backgroundColor: post.bgRadius === "wavy" ? "transparent" : bg,
           borderRadius,
           paddingLeft: shapeInsets.left,
           paddingRight: shapeInsets.right,
@@ -200,69 +265,12 @@ export function PostCard({
         style,
       ]}
     >
+      {post.bgRadius === "wavy" ? (
+        <WavyBackground width={boxWidth} height={boxHeight} fill={bg} />
+      ) : null}
+
       <View style={styles.topRow}>
         <View style={styles.topLeft}>
-          {showDate ? (
-            <View style={styles.topLeft}>
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.dateText,
-                  {
-                    fontSize: dateFontSize,
-                    color: textColors.date,
-                  },
-                ]}
-              >
-                {formatPostDate(post.createdAtMs)}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        {showActions ? (
-          <View style={styles.actionsRow}>
-            <Pressable
-              onPress={() => onEdit?.(post)}
-              style={({ pressed }) => [
-                styles.actionButton,
-                pressed && styles.actionButtonPressed,
-              ]}
-            >
-              <Text style={[styles.actionText, { color: textColors.actionText }]}>Edit</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => onDelete?.(post)}
-              style={({ pressed }) => [
-                styles.actionButton,
-                pressed && styles.actionButtonPressed,
-              ]}
-            >
-              <Text style={[styles.actionText, { color: textColors.actionText }]}>
-                Delete
-              </Text>
-            </Pressable>
-          </View>
-        ) : null}
-      </View>
-
-      {showCopyIcon || showProfileIcon ? (
-        <View style={[styles.postControls, publicControlsOffset]}>
-          {showCopyIcon ? (
-            <Pressable
-              onPress={copyPostText}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Copy post text"
-              style={({ pressed }) => [
-                styles.iconButton,
-                pressed && styles.iconButtonPressed,
-              ]}
-            >
-              <Text style={styles.iconButtonText}>{copied ? "✓" : "⧉"}</Text>
-            </Pressable>
-          ) : null}
 
           {showProfileIcon ? (
             <Pressable
@@ -280,8 +288,72 @@ export function PostCard({
               </Text>
             </Pressable>
           ) : null}
+
+          {showDate ? (
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.dateText,
+                {
+                  fontSize: dateFontSize,
+                  color: textColors.date,
+                },
+              ]}
+            >
+              {formatPostDate(post.createdAtMs)}
+            </Text>
+          ) : null}
         </View>
-      ) : null}
+
+        <View style={styles.topRight}>
+          {showActions ? (
+            <View style={styles.actionsRow}>
+              <Pressable
+                onPress={() => onEdit?.(post)}
+                style={({ pressed }) => [
+                  styles.actionButton,
+                  pressed && styles.actionButtonPressed,
+                ]}
+              >
+                <Text
+                  style={[styles.actionText, { color: textColors.actionText }]}
+                >
+                  Edit
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => onDelete?.(post)}
+                style={({ pressed }) => [
+                  styles.actionButton,
+                  pressed && styles.actionButtonPressed,
+                ]}
+              >
+                <Text
+                  style={[styles.actionText, { color: textColors.actionText }]}
+                >
+                  Delete
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {showCopyIcon ? (
+            <Pressable
+              onPress={copyPostText}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Copy post text"
+              style={({ pressed }) => [
+                styles.iconButton,
+                pressed && styles.iconButtonPressed,
+              ]}
+            >
+              <Text style={styles.iconButtonText}>{copied ? "✓" : "⧉"}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
 
       <View
         style={styles.descriptionArea}
@@ -388,7 +460,7 @@ export function PostCard({
           <Text style={styles.hintArrow}>↓</Text>
         </Pressable>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -397,16 +469,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     justifyContent: "space-between",
     position: "relative",
-  },
-
-  postControls: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    zIndex: 30,
-    flexDirection: "row",
-    gap: 6,
-    alignItems: "center",
   },
 
   iconButton: {
@@ -459,12 +521,21 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     paddingRight: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+
+  topRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 0,
   },
 
   dateText: {
     fontWeight: "600",
     flexShrink: 1,
-
   },
 
   actionsRow: {

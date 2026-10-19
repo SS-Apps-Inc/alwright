@@ -1,11 +1,10 @@
 // my_posts_layout_vm.ts
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { LayoutChangeEvent } from "react-native";
 import {
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { PostUI } from "@/network/post/postMappers";

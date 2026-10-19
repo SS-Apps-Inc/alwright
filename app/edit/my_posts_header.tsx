@@ -2,6 +2,7 @@
 import React from "react";
 import {
   FlatList,
+  Animated,
   Platform,
   Pressable,
   StyleSheet,
@@ -53,6 +54,65 @@ type Props = {
   scrollListToOffset: (offset: number, animated?: boolean) => void;
   getCurrentOffset: () => number;
 };
+
+function EditablePostCard({
+  post,
+  width,
+  height,
+  showDate,
+  onSettings,
+  onDelete,
+}: {
+  post: PostUI;
+  width: number;
+  height: number;
+  showDate: boolean;
+  onSettings: (post: PostUI) => void;
+  onDelete: (post: PostUI) => void;
+}) {
+  const [menuVisible, setMenuVisible] = React.useState(false);
+  const pressScale = React.useRef(new Animated.Value(1)).current;
+
+  const animateScale = React.useCallback(
+    (toValue: number) => {
+      Animated.spring(pressScale, {
+        toValue,
+        damping: 18,
+        stiffness: 320,
+        mass: 0.6,
+        useNativeDriver: true,
+      }).start();
+    },
+    [pressScale]
+  );
+
+  return (
+    <View style={{ width, height, alignSelf: "center" }}>
+      <Animated.View
+        style={{ width: "100%", height, transform: [{ scale: pressScale }] }}
+      >
+        <PostCard
+          post={post}
+          showDate={showDate}
+          showActions={false}
+          height={height}
+          style={{ width: "100%" }}
+          onPressIn={() => animateScale(0.975)}
+          onPressOut={() => animateScale(1)}
+          onLongPress={() => setMenuVisible(true)}
+        />
+
+        <MyPostCardActions
+          post={post}
+          visible={menuVisible}
+          onChangeVisible={setMenuVisible}
+          onSettings={onSettings}
+          onDelete={onDelete}
+        />
+      </Animated.View>
+    </View>
+  );
+}
 
 export function MyPostsHeader({
   insetsTop,
@@ -115,21 +175,14 @@ export function MyPostsHeader({
           ]}
         >
           {mainPost && showMainPost ? (
-            <View style={{ width: mainCardWidth, alignSelf: "center" }}>
-              <PostCard
-                post={mainPost}
-                showDate={false}
-                showActions={false}
-                height={mainCardHeight}
-                style={{ width: mainCardWidth, alignSelf: "center" }}
-              />
-
-              <MyPostCardActions
-                post={mainPost}
-                onSettings={onSettings}
-                onDelete={onDelete}
-              />
-            </View>
+            <EditablePostCard
+              post={mainPost}
+              width={mainCardWidth}
+              height={mainCardHeight}
+              showDate={false}
+              onSettings={onSettings}
+              onDelete={onDelete}
+            />
           ) : (
             <View
               style={[
@@ -200,21 +253,14 @@ export function MyPostsHeader({
                 )
               }
               renderItem={({ item }) => (
-                <View>
-                  <PostCard
-                    post={item}
-                    showDate={true}
-                    showActions={false}
-                    height={listHeight}
-                    style={{ width: listItemWidth }}
-                  />
-
-                  <MyPostCardActions
-                    post={item}
-                    onSettings={onSettings}
-                    onDelete={onDelete}
-                  />
-                </View>
+                <EditablePostCard
+                  post={item}
+                  width={listItemWidth}
+                  height={listHeight}
+                  showDate
+                  onSettings={onSettings}
+                  onDelete={onDelete}
+                />
               )}
             />
 

@@ -1,31 +1,83 @@
+import {
+  AsYouType,
+  getCountryCallingCode,
+  isSupportedCountry,
+  parsePhoneNumberFromString,
+  type CountryCode as PhoneCountryCode,
+} from "libphonenumber-js/max";
+import {
+  isCountryCode,
+  type CountryCode,
+} from "react-native-country-picker-modal";
+
+export type { CountryCode };
+
 export function digitsOnly(input: string) {
   return input.replace(/[^\d]/g, "");
 }
 
-// Canada-only for now: 🇨🇦 +1 + 10 digits
-export function toCanadaE164FromLocalDigits(localDigits: string) {
-  const d = digitsOnly(localDigits);
+export function formatNationalPhone(input: string, country: CountryCode) {
+  const digits = digitsOnly(input).slice(0, 15);
+  if (!isSupportedCountry(country)) return digits;
+  return new AsYouType(country as PhoneCountryCode).input(digits);
+}
 
-  // If user types starting with 1 and 11 digits total, drop leading 1
-  const ten = d.length === 11 && d.startsWith("1") ? d.slice(1) : d;
-
-  // Keep max 10 digits for Canada local number
-  const local10 = ten.slice(0, 10);
+export function parseNationalPhone(input: string, country: CountryCode) {
+  const digits = digitsOnly(input).slice(0, 15);
+  const parsed =
+    digits && isSupportedCountry(country)
+      ? parsePhoneNumberFromString(digits, country as PhoneCountryCode)
+      : undefined;
 
   return {
-    local10,
-    e164: local10.length === 10 ? `+1${local10}` : null,
+    digits,
+    formatted: formatNationalPhone(digits, country),
+    e164: parsed?.isValid() ? parsed.number : null,
+    isPossible: parsed?.isPossible() ?? false,
   };
 }
 
-// Pretty formatting: (123) 456-7890
-export function formatCanadaLocal(local10: string) {
-  const d = digitsOnly(local10).slice(0, 10);
-  const a = d.slice(0, 3);
-  const b = d.slice(3, 6);
-  const c = d.slice(6, 10);
+export function normalizePhoneInput(input: string, country: CountryCode) {
+  if (input.trim().startsWith("+")) {
+    const parsed = parsePhoneNumberFromString(input);
+    if (parsed?.country && isCountryCode(parsed.country)) {
+      return {
+        country: parsed.country,
+        digits: parsed.nationalNumber.slice(0, 15),
+      };
+    }
+  }
 
-  if (d.length <= 3) return a;
-  if (d.length <= 6) return `(${a}) ${b}`;
-  return `(${a}) ${b}-${c}`;
+  return {
+    country,
+    digits: digitsOnly(input).slice(0, 15),
+  };
+}
+
+export function callingCodeFor(country: CountryCode) {
+  return isSupportedCountry(country)
+    ? `+${getCountryCallingCode(country as PhoneCountryCode)}`
+    : "";
+}
+
+export function countryCodeFromPhone(input: string | null | undefined) {
+  if (!input) return null;
+  const parsed = parsePhoneNumberFromString(input);
+  return parsed?.country && isCountryCode(parsed.country)
+    ? parsed.country
+    : null;
+}
+
+export function supportsPhoneCountry(country: CountryCode) {
+  return isSupportedCountry(country);
+}
+
+export function supportedCountryOrFallback(
+  regionCode: string | null | undefined,
+  fallback: CountryCode = "CA"
+) {
+  const normalized = regionCode?.toUpperCase() ?? "";
+  return isCountryCode(normalized) && supportsPhoneCountry(normalized)
+    ? normalized
+    : fallback;
 }

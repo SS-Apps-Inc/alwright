@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import { apiSyncMyBillingPlan } from "@/network/billing/billingApi";
 import { supabase } from "@/network/supabaseClient";
+import { BILLING_PLAN_DAILY_POST_LIMITS } from "@/config";
 
 declare const require: (name: string) => any;
 
@@ -29,9 +30,7 @@ let billingState: BillingState = {
 const billingListeners = new Set<(state: BillingState) => void>();
 
 export const DAILY_POST_LIMITS: Record<BillingPlan, number> = {
-  free: 2,
-  starter: 6,
-  pro: 31,
+  ...BILLING_PLAN_DAILY_POST_LIMITS,
 };
 
 function emitBillingState(next: Partial<BillingState>) {

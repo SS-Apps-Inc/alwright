@@ -1,21 +1,30 @@
 import { useCallback, useMemo, useState } from "react";
 import { Alert } from "react-native";
+import { getLocales } from "expo-localization";
 
 import { sendPhoneOtp, verifyPhoneOtp, apiClaimReferral } from "@/network/phoneAuthService";
 import { apiCancelMyAccountDeletion } from "@/network/account/accountApi";
+import { apiSaveMyPhoneCountry } from "@/network/profile/profileApi";
 import { syncBillingPlanFromRevenueCat } from "@/features/billing/billing_plan";
 import {
-  formatCanadaLocal,
-  toCanadaE164FromLocalDigits,
+  formatNationalPhone,
+  normalizePhoneInput,
+  parseNationalPhone,
+  supportedCountryOrFallback,
+  type CountryCode,
 } from "@/network/phoneFormatHelper";
 import { useCountdown } from "./useCountdown";
 
 type Step = "phone" | "otp";
 
 export function usePhoneLoginVM(onSuccess?: () => void) {
+  const deviceCountry = supportedCountryOrFallback(getLocales()[0]?.regionCode);
   const [step, setStep] = useState<Step>("phone");
   const [localDigits, setLocalDigits] = useState("");
+  const [countryCode, setCountryCode] = useState<CountryCode>(deviceCountry);
   const [referralLocalDigits, setReferralLocalDigits] = useState("");
+  const [referralCountryCode, setReferralCountryCode] =
+    useState<CountryCode>(deviceCountry);
   const [referralVisible, setReferralVisible] = useState(false);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,23 +32,23 @@ export function usePhoneLoginVM(onSuccess?: () => void) {
   const resend = useCountdown(60);
 
   const phone = useMemo(
-    () => toCanadaE164FromLocalDigits(localDigits),
-    [localDigits]
+    () => parseNationalPhone(localDigits, countryCode),
+    [countryCode, localDigits]
   );
 
   const referralPhone = useMemo(
-    () => toCanadaE164FromLocalDigits(referralLocalDigits),
-    [referralLocalDigits]
+    () => parseNationalPhone(referralLocalDigits, referralCountryCode),
+    [referralCountryCode, referralLocalDigits]
   );
 
   const formattedLocal = useMemo(
-    () => formatCanadaLocal(phone.local10),
-    [phone.local10]
+    () => formatNationalPhone(phone.digits, countryCode),
+    [countryCode, phone.digits]
   );
 
   const formattedReferralLocal = useMemo(
-    () => formatCanadaLocal(referralPhone.local10),
-    [referralPhone.local10]
+    () => formatNationalPhone(referralPhone.digits, referralCountryCode),
+    [referralCountryCode, referralPhone.digits]
   );
 
   const referralHasValue = referralLocalDigits.trim().length > 0;
@@ -49,7 +58,7 @@ export function usePhoneLoginVM(onSuccess?: () => void) {
 
   const referralError = useMemo(() => {
     if (!referralHasValue) return null;
-    if (!referralPhone.e164) return "Enter a complete Canadian phone number.";
+    if (!referralPhone.e164) return "Enter a valid phone number.";
     if (referralIsSame) return "Referral phone number cannot be your own.";
     return null;
   }, [referralHasValue, referralPhone.e164, referralIsSame]);
@@ -62,14 +71,31 @@ export function usePhoneLoginVM(onSuccess?: () => void) {
 
   const canVerify = otp.trim().length === 6 && !!phone.e164 && !loading;
 
+  const phoneError =
+    localDigits.length > 0 && !phone.e164
+      ? "Enter a valid phone number."
+      : null;
+
   const setPhoneInput = useCallback((text: string) => {
-    const d = text.replace(/[^\d]/g, "").slice(0, 11);
-    setLocalDigits(d);
-  }, []);
+    const normalized = normalizePhoneInput(text, countryCode);
+    setCountryCode(normalized.country);
+    setLocalDigits(normalized.digits);
+  }, [countryCode]);
 
   const setReferralPhoneInput = useCallback((text: string) => {
-    const d = text.replace(/[^\d]/g, "").slice(0, 11);
-    setReferralLocalDigits(d);
+    const normalized = normalizePhoneInput(text, referralCountryCode);
+    setReferralCountryCode(normalized.country);
+    setReferralLocalDigits(normalized.digits);
+  }, [referralCountryCode]);
+
+  const selectCountry = useCallback((country: CountryCode) => {
+    setCountryCode(country);
+    setLocalDigits("");
+  }, []);
+
+  const selectReferralCountry = useCallback((country: CountryCode) => {
+    setReferralCountryCode(country);
+    setReferralLocalDigits("");
   }, []);
 
   const toggleReferralVisible = useCallback(() => {
@@ -111,6 +137,13 @@ export function usePhoneLoginVM(onSuccess?: () => void) {
       }
 
       try {
+        await apiSaveMyPhoneCountry(countryCode);
+      } catch (error) {
+        // Country metadata should never prevent an otherwise valid login.
+        console.log("Phone country save failed:", error);
+      }
+
+      try {
         await syncBillingPlanFromRevenueCat();
       } catch (error) {
         console.log("Billing plan sync failed:", error);
@@ -144,6 +177,7 @@ export function usePhoneLoginVM(onSuccess?: () => void) {
     phone.e164,
     otp,
     loading,
+    countryCode,
     referralPhone.e164,
     referralIsSame,
     onSuccess,
@@ -176,6 +210,9 @@ export function usePhoneLoginVM(onSuccess?: () => void) {
 
     formattedLocal,
     setPhoneInput,
+    countryCode,
+    selectCountry,
+    phoneError,
     canSend,
     sendOtp,
 
@@ -183,6 +220,8 @@ export function usePhoneLoginVM(onSuccess?: () => void) {
     toggleReferralVisible,
     formattedReferralLocal,
     setReferralPhoneInput,
+    referralCountryCode,
+    selectReferralCountry,
     referralError,
 
     otp,

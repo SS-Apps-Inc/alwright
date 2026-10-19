@@ -2,13 +2,8 @@
 import { apiCancelMyAccountDeletion } from "@/network/account/accountApi";
 import { privateMemory } from "@/memory";
 import { supabase } from "@/network/supabaseClient";
+import { STORAGE_KEYS } from "@/config";
 import type { Session, User } from "@supabase/supabase-js";
-
-const KEY = {
-  accessToken: "auth.accessToken",
-  refreshToken: "auth.refreshToken",
-  userId: "auth.userId",
-} as const;
 
 type AuthState = {
   ready: boolean;
@@ -48,11 +43,15 @@ export function isLoggedIn() {
 
 export async function getAccessToken() {
   if (state.session?.access_token) return state.session.access_token;
-  return await privateMemory.getItem(KEY.accessToken);
+  return await privateMemory.getItem(STORAGE_KEYS.auth.accessToken);
 }
 
 export async function getUserId() {
-  return state.session?.user?.id ?? (await privateMemory.getItem(KEY.userId)) ?? null;
+  return (
+    state.session?.user?.id ??
+    (await privateMemory.getItem(STORAGE_KEYS.auth.userId)) ??
+    null
+  );
 }
 
 export async function signOut() {
@@ -61,15 +60,21 @@ export async function signOut() {
 
 async function persistSession(session: Session | null) {
   if (!session) {
-    await privateMemory.removeItem(KEY.accessToken);
-    await privateMemory.removeItem(KEY.refreshToken);
-    await privateMemory.removeItem(KEY.userId);
+    await privateMemory.removeItem(STORAGE_KEYS.auth.accessToken);
+    await privateMemory.removeItem(STORAGE_KEYS.auth.refreshToken);
+    await privateMemory.removeItem(STORAGE_KEYS.auth.userId);
     return;
   }
 
-  await privateMemory.setItem(KEY.accessToken, session.access_token);
-  await privateMemory.setItem(KEY.refreshToken, session.refresh_token);
-  await privateMemory.setItem(KEY.userId, session.user.id);
+  await privateMemory.setItem(
+    STORAGE_KEYS.auth.accessToken,
+    session.access_token
+  );
+  await privateMemory.setItem(
+    STORAGE_KEYS.auth.refreshToken,
+    session.refresh_token
+  );
+  await privateMemory.setItem(STORAGE_KEYS.auth.userId, session.user.id);
 }
 
 async function cancelPendingDeletionForSession(session: Session | null) {

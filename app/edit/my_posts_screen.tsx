@@ -2,12 +2,13 @@
 import React from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View, Pressable, Text } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useMyPostsVM } from "./use_my_posts_vm";
 import { useMyPostsLayoutVM } from "./my_posts_layout_vm";
 import { MyPostsHeader } from "./my_posts_header";
 import { PostStyleBottomSheet } from "./post_style_bottom_sheet";
-import { Image } from "react-native";
-import { hexToRgba } from "@/features/posts/ui";
+import { mixHexColors } from "@/features/posts/ui";
+import { colors } from "@/design-system/tokens";
 import { MyPostsPageSettingsSheet } from "./my_posts_page_settings_sheet";
 import {
   getMainPostRatio,
@@ -24,8 +25,12 @@ export function MyPostsScreen() {
     layoutVM.contentHeight +
     layoutVM.bottomPad;
   const pageBg = dataVM.pageSettings.bgColor
-    ? hexToRgba(dataVM.pageSettings.bgColor, dataVM.pageSettings.bgOpacity)
-    : "#0B0B0C";
+    ? mixHexColors(
+        colors.white,
+        dataVM.pageSettings.bgColor,
+        dataVM.pageSettings.bgOpacity
+      )
+    : colors.background;
 
   const singlePostLayout = dataVM.pageSettings.showOnlyLast;
   const listOnlyLayout =
@@ -70,16 +75,16 @@ export function MyPostsScreen() {
         </Pressable>
 
         <Pressable
-          onPress={() => {
-            console.log("page settings before:", dataVM.pageSettingsVisible);
-            dataVM.openPageSettings();
-          }}
-          style={styles.dotsButton}>
-          <Image
-            source={require("../../assets/dots.png")}
-            style={styles.dotsIcon}
-            resizeMode="contain"
-          />
+          accessibilityRole="button"
+          accessibilityLabel="Personalize page"
+          onPress={dataVM.openPageSettings}
+          style={({ pressed }) => [
+            styles.editPageButton,
+            pressed && styles.editPageButtonPressed,
+          ]}
+        >
+          <Ionicons name="pencil-outline" size={15} color={colors.text} />
+          <Text style={styles.editPageText}>Personalize page</Text>
         </Pressable>
       </View>
 
@@ -138,6 +143,7 @@ export function MyPostsScreen() {
         post={dataVM.selectedPost}
         visible={dataVM.settingsVisible}
         updating={dataVM.updating}
+        pageBackgroundColor={pageBg}
         onCancel={dataVM.closeSettings}
         onUpdate={dataVM.updatePostStyle}
       />
@@ -185,17 +191,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-  dotsButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "rgba(255,255,255,0.1)",
+  editPageButton: {
+    height: 38,
+    borderRadius: 19,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    gap: 7,
+    backgroundColor: colors.darkControl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.faintBorder,
     alignItems: "center",
     justifyContent: "center",
   },
-
-  dotsIcon: {
-    width: 15,
-    height: 15,
-  },
+  editPageButtonPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
+  editPageText: { color: colors.text, fontSize: 14, fontWeight: "800" },
 });

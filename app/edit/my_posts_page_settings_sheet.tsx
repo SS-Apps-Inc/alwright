@@ -1,4 +1,3 @@
-// MyPostsPageSettingsSheet.tsx
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,14 +8,21 @@ import {
   Switch,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
-import Slider from "@react-native-community/slider";
-import type { MyPostsPageSettings } from "./my_posts_types";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { colors, postBackgroundColors } from "@/design-system/tokens";
 import {
   getProfileIconLabel,
   PROFILE_ICON_OPTIONS,
 } from "@/features/profile/profile_icon";
 import { PostLayoutPicker } from "@/features/posts/PostLayoutPicker";
+import {
+  BackgroundStyleControls,
+  MIN_BACKGROUND_OPACITY,
+} from "./background_style_controls";
+import type { MyPostsPageSettings } from "./my_posts_types";
 
 type Props = {
   visible: boolean;
@@ -26,21 +32,11 @@ type Props = {
   onUpdate: (next: MyPostsPageSettings) => Promise<void>;
 };
 
-const BG_COLORS = [
+const PAGE_BACKGROUND_COLORS = [
   "#0B0B0C",
-  "#111111",
-  "#1C1C1E",
-  "#E40303",
-  "#FF8C00",
-  "#004DFF",
-  "#750787",
-  "#A8DADC",
-  "#CDB4DB",
+  ...postBackgroundColors,
   "#EAEAEA",
-];
-
-const MIN_OPACITY = 0.2;
-
+] as const;
 export function MyPostsPageSettingsSheet({
   visible,
   updating,
@@ -48,369 +44,273 @@ export function MyPostsPageSettingsSheet({
   onCancel,
   onUpdate,
 }: Props) {
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const [draft, setDraft] = useState<MyPostsPageSettings>(value);
 
   useEffect(() => {
-    if (visible) {
-      setDraft({
-        ...value,
-        autoLatest: true,
-        bgOpacity: Math.max(MIN_OPACITY, value.bgOpacity ?? 1),
-      });
-    }
+    if (!visible) return;
+
+    setDraft({
+      ...value,
+      autoLatest: true,
+      bgOpacity: Math.max(MIN_BACKGROUND_OPACITY, value.bgOpacity ?? 1),
+    });
   }, [visible, value]);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      presentationStyle="overFullScreen"
-      onRequestClose={onCancel}
-    >
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onCancel} />
+    <>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="slide"
+        presentationStyle="overFullScreen"
+        onRequestClose={onCancel}
+      >
+        <View style={styles.overlay}>
+          <Pressable style={styles.backdrop} onPress={onCancel} />
 
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-
-          <Text style={styles.title}>Page settings</Text>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Post layout</Text>
-
-            <PostLayoutPicker
-              showOnlyLast={draft.showOnlyLast}
-              layoutMode={draft.layoutMode}
-              onChange={(next) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  showOnlyLast: next.showOnlyLast,
-                  layoutMode: next.layoutMode,
-                }))
-              }
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Profile icon</Text>
-
-            <View style={styles.iconOptionsRow}>
-              {PROFILE_ICON_OPTIONS.map((option) => {
-                const selected = draft.profileIconType === option.type;
-
-                return (
-                  <Pressable
-                    key={option.type}
-                    onPress={() =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        profileIconType: option.type,
-                      }))
-                    }
-                    style={[
-                      styles.iconOption,
-                      selected && styles.iconOptionSelected,
-                    ]}
-                  >
-                    <Text style={styles.iconOptionText}>
-                      {getProfileIconLabel(option.type)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={styles.row}>
-            <View style={styles.textWrap}>
-              <Text style={styles.label}>Others can find my page from posts</Text>
-              <Text style={styles.subtitle}>
-                Show your profile icon on posts and link it to your public page.
-              </Text>
-            </View>
-
-            <Switch
-              value={draft.profileLinksEnabled}
-              onValueChange={(v) =>
-                setDraft((prev) => ({ ...prev, profileLinksEnabled: v }))
-              }
-            />
-          </View>
-
-          <View style={styles.row}>
-            <View style={styles.textWrap}>
-              <Text style={styles.label}>Others can copy post text</Text>
-              <Text style={styles.subtitle}>
-                Show a copy button on your public posts.
-              </Text>
-            </View>
-
-            <Switch
-              value={draft.postCopyEnabled}
-              onValueChange={(v) =>
-                setDraft((prev) => ({ ...prev, postCopyEnabled: v }))
-              }
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Background color</Text>
+          <View
+            style={[
+              styles.sheet,
+              {
+                height: windowHeight * 0.8,
+                paddingBottom: Math.max(insets.bottom, 20),
+              },
+            ]}
+          >
+            <View style={styles.handle} />
 
             <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.colorsRow}
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
             >
-              <Pressable
-                onPress={() =>
-                  setDraft((prev) => ({ ...prev, bgColor: null }))
-                }
-                style={styles.colorButton}
-              >
-                <View
-                  style={[
-                    styles.colorCircle,
-                    styles.clearCircle,
-                    {
-                      borderColor: draft.bgColor === null ? "#FFFFFF" : "#333333",
-                      borderWidth: draft.bgColor === null ? 3 : 1,
-                    },
-                  ]}
-                >
-                  <Text style={styles.clearText}>Clear</Text>
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>Page&apos;s posts layout</Text>
+                <PostLayoutPicker
+                  showOnlyLast={draft.showOnlyLast}
+                  layoutMode={draft.layoutMode}
+                  onChange={(next) =>
+                    setDraft((previous) => ({
+                      ...previous,
+                      showOnlyLast: next.showOnlyLast,
+                      layoutMode: next.layoutMode,
+                    }))
+                  }
+                />
+              </View>
+
+              <View style={styles.switchSection}>
+                <View style={styles.textWrap}>
+                  <Text style={styles.rowLabel}>Others can find my page from posts</Text>
+                  <Text style={styles.subtitle}>
+                    Show your profile icon on posts and link it to your public page.
+                  </Text>
                 </View>
+                <Switch
+                  value={draft.profileLinksEnabled}
+                  onValueChange={(profileLinksEnabled) =>
+                    setDraft((previous) => ({ ...previous, profileLinksEnabled }))
+                  }
+                />
+              </View>
 
-                {draft.bgColor === null ? <Text style={styles.check}>✓</Text> : null}
-              </Pressable>
+              {draft.profileLinksEnabled ? (
+                <View style={styles.profileIconSection}>
+                  <Text style={styles.sectionLabel}>Profile picture</Text>
+                  <View style={styles.iconOptionsRow}>
+                    {PROFILE_ICON_OPTIONS.map((option) => {
+                      const selected = draft.profileIconType === option.type;
+                      return (
+                        <Pressable
+                          key={option.type}
+                          onPress={() =>
+                            setDraft((previous) => ({
+                              ...previous,
+                              profileIconType: option.type,
+                            }))
+                          }
+                          style={[
+                            styles.iconOption,
+                            selected && styles.iconOptionSelected,
+                          ]}
+                        >
+                          <Text style={styles.iconOptionText}>
+                            {getProfileIconLabel(option.type)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
 
-              {BG_COLORS.map((hex) => {
-                const selected =
-                  draft.bgColor?.toLowerCase() === hex.toLowerCase();
+              <View style={styles.switchSection}>
+                <View style={styles.textWrap}>
+                  <Text style={styles.rowLabel}>Others can find my posts by country</Text>
+                  <Text style={styles.subtitle}>
+                    {draft.phoneCountryFlag
+                      ? `Show your public posts in the ${draft.phoneCountryFlag} ${draft.phoneCountryCode} country feed. Your phone number stays private.`
+                      : "Show your public posts in your country’s feed. Your phone number stays private."}
+                  </Text>
+                </View>
+                <Switch
+                  value={draft.countryDiscoveryEnabled}
+                  onValueChange={(countryDiscoveryEnabled) =>
+                    setDraft((previous) => ({
+                      ...previous,
+                      countryDiscoveryEnabled,
+                    }))
+                  }
+                />
+              </View>
 
-                return (
-                  <Pressable
-                    key={hex}
-                    onPress={() =>
-                      setDraft((prev) => ({ ...prev, bgColor: hex }))
-                    }
-                    style={styles.colorButton}
-                  >
-                    <View
-                      style={[
-                        styles.colorCircle,
-                        {
-                          backgroundColor: hex,
-                          borderColor: selected ? "#FFFFFF" : "#333333",
-                          borderWidth: selected ? 3 : 1,
-                        },
-                      ]}
-                    />
+              <View style={styles.switchSection}>
+                <View style={styles.textWrap}>
+                  <Text style={styles.rowLabel}>Others can copy post text</Text>
+                  <Text style={styles.subtitle}>
+                    Show a copy button on your public posts.
+                  </Text>
+                </View>
+                <Switch
+                  value={draft.postCopyEnabled}
+                  onValueChange={(postCopyEnabled) =>
+                    setDraft((previous) => ({ ...previous, postCopyEnabled }))
+                  }
+                />
+              </View>
 
-                    {selected ? <Text style={styles.check}>✓</Text> : null}
-                  </Pressable>
-                );
-              })}
+              <BackgroundStyleControls
+                active={visible}
+                allowClear
+                color={draft.bgColor}
+                opacity={draft.bgOpacity}
+                palette={PAGE_BACKGROUND_COLORS}
+                sectionSpacing={32}
+                onChangeColor={(bgColor) =>
+                  setDraft((previous) => ({ ...previous, bgColor }))
+                }
+                onChangeOpacity={(bgOpacity) =>
+                  setDraft((previous) => ({ ...previous, bgOpacity }))
+                }
+              />
             </ScrollView>
-          </View>
 
-          <View style={styles.field}>
-            <View style={styles.valueRow}>
-              <Text style={styles.label}>Background opacity</Text>
-              <Text style={styles.valueText}>
-                {Math.round(draft.bgOpacity * 100)}%
-              </Text>
+            <View style={styles.actions}>
+              <Pressable
+                disabled={updating}
+                onPress={onCancel}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                disabled={updating}
+                onPress={() => onUpdate({ ...draft, autoLatest: true })}
+                style={styles.updateButton}
+              >
+                {updating ? (
+                  <ActivityIndicator color={colors.textInverse} />
+                ) : (
+                  <Text style={styles.updateText}>Update</Text>
+                )}
+              </Pressable>
             </View>
-
-            <Slider
-              value={draft.bgOpacity}
-              minimumValue={MIN_OPACITY}
-              maximumValue={1}
-              step={0.01}
-              minimumTrackTintColor="#FFFFFF"
-              maximumTrackTintColor="#444444"
-              thumbTintColor="#FFFFFF"
-              onValueChange={(v) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  bgOpacity: Math.max(MIN_OPACITY, v),
-                }))
-              }
-            />
-          </View>
-
-          <View style={styles.actions}>
-            <Pressable
-              disabled={updating}
-              onPress={onCancel}
-              style={styles.cancelButton}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </Pressable>
-
-            <Pressable
-              disabled={updating}
-              onPress={() => onUpdate({ ...draft, autoLatest: true })}
-              style={styles.updateButton}
-            >
-              {updating ? (
-                <ActivityIndicator color="#111111" />
-              ) : (
-                <Text style={styles.updateText}>Update</Text>
-              )}
-            </Pressable>
           </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
+  overlay: { flex: 1, justifyContent: "flex-end" },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.18)",
+    backgroundColor: "rgba(0,0,0,0.28)",
   },
   sheet: {
-    backgroundColor: "#0B0B0C",
+    backgroundColor: colors.background,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    padding: 20,
-    paddingBottom: 32,
+    paddingHorizontal: 20,
+    paddingTop: 14,
   },
   handle: {
     width: 44,
     height: 5,
     borderRadius: 999,
-    backgroundColor: "#3A3A3C",
+    backgroundColor: colors.surfaceBorder,
     alignSelf: "center",
     marginBottom: 18,
   },
-  title: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    fontWeight: "900",
-    marginBottom: 12,
+  scroll: { flex: 1, marginHorizontal: -20 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 8 },
+  section: { marginBottom: 32 },
+  sectionLabel: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 14,
   },
-  row: {
-    minHeight: 72,
+  switchSection: {
+    minHeight: 86,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#2A2A2A",
+    borderTopColor: colors.surfaceBorder,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 14,
-    paddingVertical: 14,
+    paddingVertical: 20,
   },
-  textWrap: {
-    flex: 1,
+  profileIconSection: {
+    paddingTop: 6,
+    paddingBottom: 32,
   },
-  label: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "800",
-  },
+  textWrap: { flex: 1 },
+  rowLabel: { color: colors.text, fontSize: 15, fontWeight: "800" },
   subtitle: {
-    color: "#AFAFAF",
+    color: colors.textMuted,
     fontSize: 12,
+    lineHeight: 17,
     fontWeight: "600",
-    marginTop: 4,
+    marginTop: 5,
   },
-  field: {
-    marginTop: 14,
-  },
-  iconOptionsRow: {
-    flexDirection: "row",
-    gap: 12,
-    paddingTop: 12,
-  },
+  iconOptionsRow: { flexDirection: "row", gap: 12 },
   iconOption: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: colors.surfaceBorder,
     alignItems: "center",
     justifyContent: "center",
   },
-  iconOptionSelected: {
-    borderColor: "#FFFFFF",
-    borderWidth: 3,
-  },
-  iconOptionText: {
-    color: "#FFFFFF",
-    fontSize: 24,
-    fontWeight: "900",
-  },
-  colorsRow: {
-    gap: 12,
-    paddingTop: 12,
-  },
-  colorButton: {
-    width: 52,
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  colorCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-  },
-  clearCircle: {
-    backgroundColor: "transparent",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  clearText: {
-    color: "#AFAFAF",
-    fontSize: 9,
-    fontWeight: "900",
-  },
-  check: {
-    position: "absolute",
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "900",
-  },
-  valueRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  valueText: {
-    color: "#AFAFAF",
-    fontWeight: "700",
-  },
+  iconOptionSelected: { borderColor: colors.text, borderWidth: 3 },
+  iconOptionText: { color: colors.text, fontSize: 24, fontWeight: "900" },
   actions: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 22,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.surfaceBorder,
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: colors.surface,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",
   },
   updateButton: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.text,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",
   },
-  cancelText: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-  },
-  updateText: {
-    color: "#111111",
-    fontWeight: "900",
-  },
+  cancelText: { color: colors.text, fontWeight: "800" },
+  updateText: { color: colors.textInverse, fontWeight: "900" },
 });

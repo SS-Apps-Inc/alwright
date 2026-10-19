@@ -9,11 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-
-const CONTACT_EMAIL = "support@alwright.cc";
-const CYBERTIP_URL = "https://www.cybertip.ca/en/report/";
-const CANADA_LAW_URL =
-  "https://laws-lois.justice.gc.ca/eng/acts/c-46/section-163.1.html";
+import { SAFETY_URLS, SUPPORT_EMAIL, media } from "@/config";
 
 function ExternalLink({
   href,
@@ -64,7 +60,7 @@ function Bullet({ children }: { children: React.ReactNode }) {
 
 export default function ChildSafetyStandardsScreen() {
   const contactHref =
-    "mailto:support@alwright.cc?subject=Alwright%20Child%20Safety%20Concern";
+    `mailto:${SUPPORT_EMAIL}?subject=Alwright%20Child%20Safety%20Concern`;
 
   return (
     <ScrollView
@@ -76,7 +72,7 @@ export default function ChildSafetyStandardsScreen() {
         <View style={styles.header}>
           <Image
             accessibilityLabel="Alwright"
-            source={require("../assets/images/icon.png")}
+            source={media.appIcon}
             style={styles.logo}
           />
           <View style={styles.brandText}>
@@ -99,8 +95,8 @@ export default function ChildSafetyStandardsScreen() {
           </Text>
           <Text style={styles.scope}>
             These standards are publicly available worldwide. Alwright is
-            currently offered only in Canada, and this policy reflects
-            applicable Canadian requirements.
+            operated by a Canadian company, serves an international audience,
+            and follows applicable Canadian requirements.
           </Text>
         </View>
 
@@ -131,7 +127,7 @@ export default function ChildSafetyStandardsScreen() {
             ]}
           >
             <Text style={styles.contactLabel}>CHILD SAFETY CONTACT</Text>
-            <Text style={styles.contactEmail}>{CONTACT_EMAIL}</Text>
+            <Text style={styles.contactEmail}>{SUPPORT_EMAIL}</Text>
           </Pressable>
           <Text style={styles.body}>
             Do not email or forward suspected CSAM. Report the location of the
@@ -156,13 +152,13 @@ export default function ChildSafetyStandardsScreen() {
           <Bullet>
             In Canada, suspected online sexual exploitation of a child can be
             reported to{" "}
-            <ExternalLink href={CYBERTIP_URL}>Cybertip.ca</ExternalLink>,
+            <ExternalLink href={SAFETY_URLS.cybertip}>Cybertip.ca</ExternalLink>,
             Canada&apos;s national tipline.
           </Bullet>
           <Bullet>
             Alwright acts in accordance with applicable Canadian law, including
             the{" "}
-            <ExternalLink href={CANADA_LAW_URL}>
+            <ExternalLink href={SAFETY_URLS.canadianCriminalCode}>
               Criminal Code provisions concerning child sexual abuse and
               exploitation material
             </ExternalLink>
@@ -195,7 +191,7 @@ export default function ChildSafetyStandardsScreen() {
           </Text>
           <Text style={styles.footerText}>
             Questions about these standards?{" "}
-            <ExternalLink href={contactHref}>{CONTACT_EMAIL}</ExternalLink>
+            <ExternalLink href={contactHref}>{SUPPORT_EMAIL}</ExternalLink>
           </Text>
         </View>
       </View>

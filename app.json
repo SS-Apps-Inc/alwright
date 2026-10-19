@@ -1,9 +1,10 @@
 {
   "expo": {
     "name": "Alwright",
+    "description": "Connect intentionally through meaningful public thoughts—without likes or an algorithm.",
     "slug": "alwright",
     "scheme": "alwright",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
@@ -27,6 +28,7 @@
     },
     "android": {
       "package": "ca.ssapps.alwright",
+      "versionCode": 37,
       "adaptiveIcon": {
         "backgroundColor": "#FAFAFA",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -50,12 +52,11 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/android-icon-foreground.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
           "backgroundColor": "#FAFAFA",
+          "image": "./assets/images/splash-transparent.png",
           "dark": {
-            "backgroundColor": "#0B151F"
+            "backgroundColor": "#FAFAFA",
+            "image": "./assets/images/splash-transparent.png"
           }
         }
       ],
@@ -69,6 +70,7 @@
       ],
       "expo-font",
       "expo-image",
+      "expo-localization",
       "expo-secure-store",
       "expo-web-browser",
       "./plugins/with-android-optimization"

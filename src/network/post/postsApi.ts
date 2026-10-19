@@ -1,7 +1,12 @@
 // postsApi.ts
 import { supabase } from "../supabaseClient";
 import { buildSearchTerms } from "./searchTerms";
-import type { CreatePostInput, PostRow, PostsPageCursor } from "./postTypes";
+import type {
+  CreatePostInput,
+  PostRow,
+  PostsPageCursor,
+  RandomPostsPageCursor,
+} from "./postTypes";
 import {
   DEFAULT_MY_POSTS_PAGE_SETTINGS,
   type MyPostsPageSettings,
@@ -29,6 +34,22 @@ function isMissingRpcError(error: unknown) {
 function getPostsPageCursor(rows: PostRow[]): PostsPageCursor {
   const last = rows[rows.length - 1] ?? null;
   return last ? { createdAtMs: last.created_at_ms, id: last.id } : null;
+}
+
+function createRandomSeed() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function getFallbackRandomScore(seed: string, id: string) {
+  let hash = 2166136261;
+  const value = `${seed}:${id}`;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
 async function getPostsPageFallback(
@@ -104,13 +125,37 @@ export async function apiUpdatePostStyle(input: {
   radius: string | null;
   fontColor: string | null;
 }) {
-  const { data, error } = await supabase.rpc("update_post_style_secure", {
-    p_post_id: input.postId,
-    p_bg_color: input.bgColor,
-    p_bg_opacity: input.bgOpacity,
-    p_radius: input.radius,
-    p_font_color: input.fontColor,
-  });
+  const updateThroughRpc = (radius: string | null) =>
+    supabase.rpc("update_post_style_secure", {
+      p_post_id: input.postId,
+      p_bg_color: input.bgColor,
+      p_bg_opacity: input.bgOpacity,
+      p_radius: radius,
+      p_font_color: input.fontColor,
+    });
+
+  const { data, error } = await updateThroughRpc(input.radius);
+
+  const oldRpcRejectedWavy =
+    input.radius === "wavy" &&
+    error?.code === "P0001" &&
+    error.message === "Invalid post radius.";
+
+  if (oldRpcRejectedWavy) {
+    // This legacy RPC error is raised only after its auth and paid-plan checks.
+    // Keep old deployments usable while the updated SQL rolls out.
+    const uid = await requireUserId();
+    const { data: wavyData, error: wavyError } = await supabase
+      .from("posts")
+      .update({ radius: "wavy" })
+      .eq("id", input.postId)
+      .eq("user_id", uid)
+      .select("*")
+      .single();
+
+    if (wavyError) throw wavyError;
+    return wavyData as PostRow;
+  }
 
   if (error) throw error;
   return data as PostRow;
@@ -138,6 +183,142 @@ export async function apiGetPostsPage(pageSize: number, cursor: PostsPageCursor)
   const nextCursor = getPostsPageCursor(rows);
 
   return { rows, nextCursor };
+}
+
+export async function apiGetCountryPostsPage(
+  countryCodes: string[],
+  pageSize: number,
+  cursor: PostsPageCursor
+) {
+  if (countryCodes.length === 0) {
+    return apiGetPostsPage(pageSize, cursor);
+  }
+
+  const { data, error } = await supabase.rpc("get_country_posts_page", {
+    p_country_codes: countryCodes,
+    p_page_size: pageSize,
+    p_cursor_created_at_ms: cursor?.createdAtMs ?? null,
+    p_cursor_id: cursor?.id ?? null,
+  });
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as PostRow[];
+  return { rows, nextCursor: getPostsPageCursor(rows) };
+}
+
+/**
+ * Public: get a stable randomized page. The seed is carried in the cursor so
+ * subsequent pages keep the same order without repeating earlier posts.
+ */
+export async function apiGetRandomPostsPage(
+  pageSize: number,
+  cursor: RandomPostsPageCursor
+) {
+  const seed = cursor?.seed ?? createRandomSeed();
+  const safePageSize = Math.min(Math.max(pageSize, 1), 100);
+  const { data, error } = await supabase.rpc("get_public_posts_random_page", {
+    p_page_size: safePageSize,
+    p_seed: seed,
+    p_cursor_score: cursor?.score ?? null,
+    p_cursor_id: cursor?.id ?? null,
+  });
+
+  if (error) {
+    if (!isMissingRpcError(error)) throw error;
+
+    // Compatibility while the cursor-based RPC is being deployed. This keeps
+    // the feature usable, but the RPC below is the scalable production path.
+    const fallback = await getPostsPageFallback(100, null);
+    const ranked = fallback.rows
+      .map((row) => ({ row, score: getFallbackRandomScore(seed, row.id) }))
+      .filter(
+        ({ row, score }) =>
+          !cursor ||
+          score > cursor.score ||
+          (score === cursor.score && row.id > cursor.id)
+      )
+      .sort((a, b) =>
+        a.score === b.score
+          ? a.row.id.localeCompare(b.row.id)
+          : a.score.localeCompare(b.score)
+      );
+    const page = ranked.slice(0, safePageSize);
+    const last = page[page.length - 1];
+
+    return {
+      rows: page.map(({ row }) => row),
+      nextCursor:
+        page.length === safePageSize && last
+          ? { seed, score: last.score, id: last.row.id }
+          : null,
+    };
+  }
+
+  const rows = (data ?? []) as (PostRow & { random_score: string })[];
+  const last = rows[rows.length - 1];
+
+  return {
+    rows,
+    nextCursor:
+      rows.length === safePageSize && last
+        ? { seed, score: last.random_score, id: last.id }
+        : null,
+  };
+}
+
+export async function apiGetRandomCountryPostsPage(
+  countryCodes: string[],
+  pageSize: number,
+  cursor: RandomPostsPageCursor
+) {
+  if (countryCodes.length === 0) {
+    return apiGetRandomPostsPage(pageSize, cursor);
+  }
+
+  const seed = cursor?.seed ?? createRandomSeed();
+  const safePageSize = Math.min(Math.max(pageSize, 1), 100);
+  const { data, error } = await supabase.rpc(
+    "get_country_posts_random_page",
+    {
+      p_country_codes: countryCodes,
+      p_page_size: safePageSize,
+      p_seed: seed,
+      p_cursor_score: cursor?.score ?? null,
+      p_cursor_id: cursor?.id ?? null,
+    }
+  );
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as (PostRow & { random_score: string })[];
+  const last = rows[rows.length - 1];
+
+  return {
+    rows,
+    nextCursor:
+      rows.length === safePageSize && last
+        ? { seed, score: last.random_score, id: last.id }
+        : null,
+  };
+}
+
+export async function apiCanUserAppearInCountryFeed(
+  userId: string,
+  countryCodes: string[]
+) {
+  if (countryCodes.length === 0) return true;
+
+  const { data, error } = await supabase.rpc(
+    "can_profile_appear_in_country_feed",
+    {
+      p_user_id: userId,
+      p_country_codes: countryCodes,
+    }
+  );
+
+  if (error) throw error;
+  return data === true;
 }
 
 export async function apiGetPostById(postId: string) {
@@ -226,6 +407,10 @@ export function mapMyPostsPageSettingsRow(row: Partial<MyPostsPageSettingsRow> |
       row?.my_posts_profile_icon_type ?? DEFAULT_MY_POSTS_PAGE_SETTINGS.profileIconType
     ),
     profileLinksEnabled: !!row?.my_posts_profile_links_enabled,
+    countryDiscoveryEnabled:
+      DEFAULT_MY_POSTS_PAGE_SETTINGS.countryDiscoveryEnabled,
+    phoneCountryCode: DEFAULT_MY_POSTS_PAGE_SETTINGS.phoneCountryCode,
+    phoneCountryFlag: DEFAULT_MY_POSTS_PAGE_SETTINGS.phoneCountryFlag,
     postCopyEnabled:
       row?.my_posts_copy_enabled ?? DEFAULT_MY_POSTS_PAGE_SETTINGS.postCopyEnabled,
   };

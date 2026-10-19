@@ -4,8 +4,9 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
 } from "react-native";
+import { colors, LogoAnimation } from "@/design-system";
+import { APP_NAME, APP_TAGLINE, UI_CONSTANTS } from "@/config";
 
 export function SplashIntro({ onFinish }: { onFinish: () => void }) {
   const opacity = useRef(new Animated.Value(1)).current;
@@ -36,7 +37,7 @@ export function SplashIntro({ onFinish }: { onFinish: () => void }) {
     }, 2400);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [onFinish, opacity, scale, translateY]);
   return (
     <Animated.View
       style={[
@@ -48,31 +49,21 @@ export function SplashIntro({ onFinish }: { onFinish: () => void }) {
       ]}
     >
       <View style={styles.center}>
-        {/* 🔥 YOUR ICON */}
-        <View style={styles.logoWrapper}>
-          <Image
-            source={{ uri: "/assets/images/icon.png" }}
-            style={styles.logoImage}
-            resizeMode="cover"
-          />
-        </View>
-
-        <Text style={styles.logoText}>Alwright</Text>
+        <LogoAnimation size={UI_CONSTANTS.splashWebLogoSize} />
+        <Text style={styles.logoText}>{APP_NAME}</Text>
       </View>
 
       <Text style={styles.description}>
-        Express what matters. Simply.
+        {APP_TAGLINE}
       </Text>
     </Animated.View>
   );
 }
 
-const LOGO_SIZE = 110;
-
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#0B0B0C",
+    backgroundColor: colors.splashBackground,
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 140,
@@ -87,40 +78,15 @@ const styles = StyleSheet.create({
     gap: 18,
   },
 
-  // 🔥 Wrapper gives border + glow
-  logoWrapper: {
-    width: LOGO_SIZE,
-    height: LOGO_SIZE,
-    borderRadius: LOGO_SIZE / 2,
-    overflow: "hidden",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.15)",
-
-    // subtle glow (web + ios nice effect)
-    shadowColor: "#fff",
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-
-    // android fallback
-    elevation: 6,
-  },
-
-  logoImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: LOGO_SIZE / 2,
-  },
-
   logoText: {
-    color: "#FFFFFF",
+    color: colors.logoForeground,
     fontSize: 22,
     fontWeight: "800",
     letterSpacing: 0.6,
   },
 
   description: {
-    color: "#AFAFAF",
+    color: colors.textMuted,
     fontSize: 14,
     fontWeight: "600",
   },

@@ -17,7 +17,7 @@ export default function TermsScreen() {
         <title>Terms of Use | Alwright</title>
         <meta
           name="description"
-          content="Terms governing access to and use of Alwright in Canada."
+          content="Terms governing access to and use of Alwright."
         />
       </Head>
 
@@ -26,8 +26,8 @@ export default function TermsScreen() {
         eyebrow="TERMS OF USE"
         title="Clear terms for a public space."
         intro="These Terms govern your access to and use of Alwright. Please read them before creating an account, publishing a post, or purchasing a subscription."
-        scope="Alwright is a product of SS Apps Inc. and is currently offered only in Canada. By using the service, you agree to these Terms and our Privacy Policy."
-        effectiveDate="Effective August 5, 2026 · Last updated August 5, 2026"
+        scope="Alwright is a product of SS Apps Inc., a Canadian company. The service may be accessed internationally, although features and availability may vary by country or platform. By using Alwright, you agree to these Terms and our Privacy Policy."
+        effectiveDate="Effective August 5, 2026 · Last updated October 16, 2026"
         footerPrompt="Questions about these Terms?"
         emailSubject="Alwright Terms Question"
       >
@@ -44,16 +44,19 @@ export default function TermsScreen() {
         <LegalSection number="02" title="The Alwright service">
           <Text style={legalStyles.body}>
             Alwright lets users create and manage posts through the mobile app
-            and view or share public posts and profile pages on the web.
-            Features, layouts, posting limits, and availability may depend on
-            your plan, device, platform, or region.
+            and view or share public posts and profile pages on mobile and the
+            web. The service includes page and post styling, country-filtered
+            discovery, latest or random single-post feeds, sharing, referrals,
+            subscriptions, data export, and an optional iOS availability
+            waitlist. Features, layouts, posting limits, and availability may
+            depend on your plan, device, platform, or region.
           </Text>
         </LegalSection>
 
         <LegalSection number="03" title="Accounts and security">
           <LegalBullet>
-            Provide an accurate Canadian phone number and complete the
-            verification process.
+            Provide an accurate phone number, select the correct country and
+            calling code, and complete the verification process.
           </LegalBullet>
           <LegalBullet>
             Keep control of your device, verification codes, and account
@@ -79,7 +82,25 @@ export default function TermsScreen() {
           </Text>
         </LegalSection>
 
-        <LegalSection number="05" title="Your content and our licence">
+        <LegalSection number="05" title="Country feeds and profile choices">
+          <Text style={legalStyles.body}>
+            The Everywhere feed may display any eligible public post. Signed-in
+            users can save up to five country filters and view eligible posts
+            associated with those countries. Country association is based on
+            the country and calling code selected for phone authentication; it
+            is not GPS verification and does not prove a person&apos;s citizenship,
+            residence, or current location.
+          </Text>
+          <Text style={legalStyles.body}>
+            Country discoverability and links from posts to your public page
+            may be enabled by default. You can turn them off in Personalize
+            Page and choose whether a profile image appears. Latest and random
+            are display choices, not endorsements or guarantees that particular
+            content will appear. Random results may repeat as the feed is used.
+          </Text>
+        </LegalSection>
+
+        <LegalSection number="06" title="Your content and our licence">
           <Text style={legalStyles.body}>
             You retain ownership of content you create. By publishing content,
             you grant SS Apps Inc. a non-exclusive, worldwide, royalty-free
@@ -92,7 +113,7 @@ export default function TermsScreen() {
           </Text>
         </LegalSection>
 
-        <LegalSection number="06" title="Prohibited conduct">
+        <LegalSection number="07" title="Prohibited conduct">
           <Text style={legalStyles.body}>You must not use Alwright to:</Text>
           <LegalBullet>
             Publish unlawful, fraudulent, threatening, hateful, harassing,
@@ -108,8 +129,13 @@ export default function TermsScreen() {
           </LegalBullet>
           <LegalBullet>
             Distribute malware, interfere with security, scrape the service,
-            evade limits, automate abusive activity, or attempt unauthorized
-            access.
+            evade limits or country controls, automate abusive activity, or
+            attempt unauthorized access.
+          </LegalBullet>
+          <LegalBullet>
+            Manipulate referrals, create accounts to obtain improper rewards,
+            submit another person&apos;s phone number without permission, or make
+            misleading claims about a referral benefit.
           </LegalBullet>
           <LegalBullet>
             Use Alwright in a manner that places users, SS Apps Inc., or the
@@ -117,7 +143,7 @@ export default function TermsScreen() {
           </LegalBullet>
         </LegalSection>
 
-        <LegalSection number="07" title="Moderation and reporting">
+        <LegalSection number="08" title="Moderation and reporting">
           <Text style={legalStyles.body}>
             We may review reports and investigate suspected violations. We may
             remove or restrict content, preserve relevant information, limit
@@ -128,7 +154,7 @@ export default function TermsScreen() {
           </Text>
         </LegalSection>
 
-        <LegalSection number="08" title="Plans, subscriptions, and billing">
+        <LegalSection number="09" title="Plans, subscriptions, and billing">
           <LegalBullet>
             Current plan features, posting limits, prices, billing periods, and
             any trial terms are shown in the app or applicable app store before
@@ -141,7 +167,8 @@ export default function TermsScreen() {
           <LegalBullet>
             Apple or Google processes payment and manages billing. Refunds,
             cancellations, and payment disputes are subject to the applicable
-            store rules and any rights you have under Canadian law.
+            store rules and any non-waivable rights you have under applicable
+            law.
           </LegalBullet>
           <LegalBullet>
             Prices and plan features may change prospectively. We will provide
@@ -150,7 +177,31 @@ export default function TermsScreen() {
           </LegalBullet>
         </LegalSection>
 
-        <LegalSection number="09" title="Deletion and account closure">
+        <LegalSection number="10" title="Referrals and promotions">
+          <Text style={legalStyles.body}>
+            Referral offers, including any promotional Pro access, are subject
+            to the eligibility, timing, verification, and limits shown with the
+            offer. A submitted referrer phone number may be matched to an
+            existing account. Rewards are not guaranteed until eligibility is
+            confirmed, have no cash value unless stated otherwise, and may be
+            withheld or reversed for error, fraud, self-referral, duplicate
+            accounts, or abuse. We may change or end a promotion prospectively,
+            subject to applicable law.
+          </Text>
+        </LegalSection>
+
+        <LegalSection number="11" title="Messages and the iOS waitlist">
+          <Text style={legalStyles.body}>
+            One-time codes are sent to authenticate your phone number. If you
+            voluntarily join the iOS waitlist, you authorize us to use the
+            submitted name and email address, phone number, or both contact
+            methods to notify you about iOS availability. You can withdraw from
+            the waitlist by contacting us. Joining the waitlist does not
+            guarantee a release date or availability in a particular country.
+          </Text>
+        </LegalSection>
+
+        <LegalSection number="12" title="Deletion and account closure">
           <Text style={legalStyles.body}>
             You may permanently delete individual posts. Deleted posts cannot
             be recovered through Alwright and still count toward applicable
@@ -162,7 +213,7 @@ export default function TermsScreen() {
           </Text>
         </LegalSection>
 
-        <LegalSection number="10" title="Service availability and changes">
+        <LegalSection number="13" title="Service availability and changes">
           <Text style={legalStyles.body}>
             We work to keep Alwright available, but the service may be
             interrupted, delayed, changed, or discontinued. We may add, remove,
@@ -172,7 +223,7 @@ export default function TermsScreen() {
           </Text>
         </LegalSection>
 
-        <LegalSection number="11" title="Disclaimers and responsibility">
+        <LegalSection number="14" title="Disclaimers and responsibility">
           <Text style={legalStyles.body}>
             To the maximum extent permitted by applicable law, Alwright is
             provided on an “as is” and “as available” basis without warranties
@@ -183,7 +234,7 @@ export default function TermsScreen() {
           </Text>
         </LegalSection>
 
-        <LegalSection number="12" title="Limitation of liability">
+        <LegalSection number="15" title="Limitation of liability">
           <Text style={legalStyles.body}>
             To the maximum extent permitted by applicable law, SS Apps Inc. is
             not liable for indirect, incidental, special, consequential, or
@@ -193,7 +244,7 @@ export default function TermsScreen() {
           </Text>
         </LegalSection>
 
-        <LegalSection number="13" title="Suspension and termination">
+        <LegalSection number="16" title="Suspension and termination">
           <Text style={legalStyles.body}>
             You may stop using Alwright at any time. We may suspend or terminate
             access when we reasonably believe these Terms have been violated,
@@ -203,7 +254,7 @@ export default function TermsScreen() {
           </Text>
         </LegalSection>
 
-        <LegalSection number="14" title="Changes to these Terms">
+        <LegalSection number="17" title="Changes to these Terms">
           <Text style={legalStyles.body}>
             We may update these Terms to reflect service, legal, or operational
             changes. The current version and effective date will be published
@@ -213,7 +264,7 @@ export default function TermsScreen() {
           </Text>
         </LegalSection>
 
-        <LegalSection number="15" title="Canadian law">
+        <LegalSection number="18" title="Canadian law">
           <Text style={legalStyles.body}>
             These Terms are governed by the applicable laws of Canada and the
             province or territory whose law properly applies, without limiting
@@ -222,7 +273,7 @@ export default function TermsScreen() {
           </Text>
         </LegalSection>
 
-        <LegalSection number="16" title="Contact us">
+        <LegalSection number="19" title="Contact us">
           <Text style={legalStyles.body}>
             Contact Alwright support with questions about these Terms, the
             service, billing, or your account.

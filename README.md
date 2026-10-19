@@ -5,7 +5,7 @@
 <h1 align="center">Alwright</h1>
 
 <p align="center">
-  <strong>Where your thoughts land.</strong>
+  <strong>Connect Intentionally.</strong>
 </p>
 
 Alwright is a content creating app for people who want to post thoughts without the usual social-feed noise. The app is intentionally simple: create a post, choose how your page looks, decide what is public, and let people read it from a clean public web page.
@@ -111,12 +111,14 @@ The generated site is written to `dist/`.
 
 - `app/` - Expo Router screens and route files
 - `src/design-system/` - shared UI primitives and tokens
+- `src/config/` - shared app constants, metadata, URLs, and media registry
 - `src/features/` - feature modules such as feed, posts, billing, marketing, and user pages
 - `src/memory/` - local memory and persistent storage helpers
 - `src/network/` - Supabase API and data mapping layer
 - `supabase/` - SQL files for database tables, RPCs, and policies
 - `public/` - static web assets and hosting files
 - `scripts/` - build helper scripts
+- `builds/` - ignored local release artifacts, organized by version
 
 ## Contributing
 

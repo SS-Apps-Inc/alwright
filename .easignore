@@ -68,3 +68,4 @@ ios/**
 *.apk
 *.aab
 *.keystore
+*-hostinger.zip

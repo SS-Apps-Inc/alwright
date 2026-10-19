@@ -8,62 +8,60 @@ import {
   Text,
   View,
   ScrollView,
+  useWindowDimensions,
 } from "react-native";
-import Slider from "@react-native-community/slider";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors, postBackgroundColors } from "@/design-system/tokens";
 import { PostCard } from "@/features/posts/ui";
 import type { PostUI } from "@/network/post/postMappers";
 import { RadiusSegmentControl } from "./radius_segment_control";
+import {
+  BackgroundStyleControls,
+  MIN_BACKGROUND_OPACITY,
+} from "./background_style_controls";
 import {
   EditablePostStyle,
   getEditableStyleFromPost,
   MyPostsUpdatePayload,
 } from "./my_posts_types";
+import { POST_FONT_COLORS } from "@/config";
 
 type Props = {
   post: PostUI | null;
   visible: boolean;
   updating: boolean;
+  pageBackgroundColor: string;
   onCancel: () => void;
   onUpdate: (payload: MyPostsUpdatePayload) => Promise<void>;
 };
-
-const BG_COLORS = [
-  "#E40303",
-  "#FF8C00",
-  "#FFED00",
-  "#008026",
-  "#004DFF",
-  "#750787",
-  "#F4A261",
-  "#FFD166",
-  "#A8DADC",
-  "#B8F2E6",
-  "#CDB4DB",
-  "#EAEAEA",
-];
-
-const FONT_COLORS = ["#111111", "#FFFFFF", "#8E8E93"];
-
-const MIN_OPACITY = 0.2;
 
 export function PostStyleBottomSheet({
   post,
   visible,
   updating,
+  pageBackgroundColor,
   onCancel,
   onUpdate,
 }: Props) {
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const paletteGap = 8;
+  const paletteItemSize = Math.max(
+    46,
+    (windowWidth - 20 - paletteGap * 6) / 6.5
+  );
+  const paletteCircleSize = 34;
+  const previewTop = Math.max(0, insets.top - 20);
   const initial = useMemo(() => {
     return post ? getEditableStyleFromPost(post) : null;
   }, [post]);
 
   const [draft, setDraft] = useState<EditablePostStyle | null>(initial);
-
   React.useEffect(() => {
     if (!initial) return;
     setDraft({
       ...initial,
-      bgOpacity: Math.max(MIN_OPACITY, initial.bgOpacity ?? 1),
+      bgOpacity: Math.max(MIN_BACKGROUND_OPACITY, initial.bgOpacity ?? 1),
     });
   }, [initial]);
 
@@ -88,184 +86,174 @@ export function PostStyleBottomSheet({
       postId: post.id,
       style: {
         ...draft,
-        bgOpacity: Math.max(MIN_OPACITY, draft.bgOpacity),
+        bgOpacity: Math.max(MIN_BACKGROUND_OPACITY, draft.bgOpacity),
       },
     });
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onCancel} />
-        <View style={styles.previewWrap}>
-          <PostCard
-            post={previewPost}
-            showDate={true}
-            showActions={false}
-            height={220}
-          />
-        </View>
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-
-          <Text style={styles.title}>Post settings</Text>
-
-          {/* BACKGROUND COLORS */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Background color</Text>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.rowColors}
-            >
-              {BG_COLORS.map((hex) => {
-                const selected =
-                  draft.bgColor?.toLowerCase() === hex.toLowerCase();
-
-                return (
-                  <Pressable
-                    key={hex}
-                    onPress={() =>
-                      setDraft((prev) =>
-                        prev ? { ...prev, bgColor: hex } : prev
-                      )
-                    }
-                    style={styles.colorWrapper}
-                  >
-                    <View
-                      style={[
-                        styles.circle,
-                        {
-                          backgroundColor: hex,
-                          borderColor: selected ? "#FFFFFF" : "transparent",
-                          borderWidth: selected ? 3 : 0,
-                        },
-                      ]}
-                    />
-
-                    {selected && <Text style={styles.check}>✓</Text>}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-
-          {/* OPACITY */}
-          <View style={styles.field}>
-            <View style={styles.row}>
-              <Text style={styles.label}>Opacity</Text>
-              <Text style={styles.value}>
-                {Math.round(draft.bgOpacity * 100)}%
-              </Text>
+    <>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="slide"
+        presentationStyle="overFullScreen"
+        statusBarTranslucent
+        onRequestClose={onCancel}
+      >
+        <View
+          style={[
+            styles.overlay,
+            {
+              paddingTop: previewTop,
+              backgroundColor: pageBackgroundColor,
+            },
+          ]}
+        >
+          <Pressable style={styles.backdrop} onPress={onCancel} />
+          <View
+            style={[
+              styles.previewStage,
+              {
+                backgroundColor: pageBackgroundColor,
+                height: Math.max(160, windowHeight * 0.4 - previewTop),
+              },
+            ]}
+          >
+            <View style={styles.previewWrap}>
+              <PostCard
+                post={previewPost}
+                showDate={true}
+                showActions={false}
+                height="100%"
+                style={{ width: "100%" }}
+              />
             </View>
-
-            <Slider
-              value={draft.bgOpacity}
-              minimumValue={MIN_OPACITY}
-              maximumValue={1}
-              step={0.01}
-              minimumTrackTintColor="#FFFFFF"
-              maximumTrackTintColor="#444"
-              thumbTintColor="#FFFFFF"
-              onValueChange={(value) =>
-                setDraft((prev) =>
-                  prev
-                    ? { ...prev, bgOpacity: Math.max(MIN_OPACITY, value) }
-                    : prev
-                )
-              }
-            />
           </View>
-
-          {/* RADIUS */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Background radius</Text>
-            <RadiusSegmentControl
-              value={draft.bgRadius}
-              onChange={(value) =>
-                setDraft((prev) =>
-                  prev ? { ...prev, bgRadius: value } : prev
-                )
-              }
-            />
-          </View>
-
-          {/* FONT COLORS */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Font color</Text>
-
+          <View
+            style={[
+              styles.sheet,
+              { paddingBottom: Math.max(insets.bottom, 20) },
+            ]}
+          >
+            <View style={styles.handle} />
             <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.rowColors}
+              style={styles.settingsScroll}
+              contentContainerStyle={styles.settingsContent}
+              showsVerticalScrollIndicator={false}
             >
-              {FONT_COLORS.map((hex) => {
-                const selected =
-                  draft.fontColor?.toLowerCase() === hex.toLowerCase();
+              <BackgroundStyleControls
+                active={visible}
+                color={draft.bgColor}
+                opacity={draft.bgOpacity}
+                palette={postBackgroundColors}
+                onChangeColor={(bgColor) =>
+                  setDraft((previous) =>
+                    previous ? { ...previous, bgColor } : previous
+                  )
+                }
+                onChangeOpacity={(bgOpacity) =>
+                  setDraft((previous) =>
+                    previous ? { ...previous, bgOpacity } : previous
+                  )
+                }
+              />
 
-                return (
-                  <Pressable
-                    key={hex}
-                    onPress={() =>
-                      setDraft((prev) =>
-                        prev ? { ...prev, fontColor: hex } : prev
-                      )
-                    }
-                    style={styles.colorWrapper}
-                  >
-                    <View
-                      style={[
-                        styles.circle,
-                        {
-                          backgroundColor: hex,
-                          borderColor: selected ? "#FFFFFF" : "#444",
-                          borderWidth: 2,
-                        },
-                      ]}
-                    />
+              <View style={styles.field}>
+                <Text style={styles.label}>Background radius</Text>
+                <RadiusSegmentControl
+                  value={draft.bgRadius}
+                  onChange={(value) =>
+                    setDraft((prev) =>
+                      prev ? { ...prev, bgRadius: value } : prev
+                    )
+                  }
+                />
+              </View>
 
-                    {selected && <Text style={styles.check}>✓</Text>}
-                  </Pressable>
-                );
-              })}
+              <View style={styles.field}>
+                <Text style={styles.label}>Font color</Text>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.edgeToEdgePalette}
+                  contentContainerStyle={styles.rowColors}
+                >
+                  {POST_FONT_COLORS.map((hex) => {
+                    const selected =
+                      draft.fontColor?.toLowerCase() === hex.toLowerCase();
+
+                    return (
+                      <Pressable
+                        key={hex}
+                        onPress={() =>
+                          setDraft((prev) =>
+                            prev ? { ...prev, fontColor: hex } : prev
+                          )
+                        }
+                        style={[
+                          styles.colorWrapper,
+                          { width: paletteItemSize, height: paletteItemSize },
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.circle,
+                            {
+                              width: paletteCircleSize,
+                              height: paletteCircleSize,
+                              borderRadius: paletteCircleSize / 2,
+                              backgroundColor: hex,
+                              borderColor: selected ? "#FFFFFF" : "#444",
+                              borderWidth: 2,
+                            },
+                          ]}
+                        />
+
+                        {selected && <Text style={styles.check}>✓</Text>}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
             </ScrollView>
-          </View>
 
-          {/* ACTIONS */}
-          <View style={styles.actions}>
-            <Pressable style={styles.cancel} onPress={onCancel}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </Pressable>
+            <View style={styles.actions}>
+              <Pressable style={styles.cancel} onPress={onCancel}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
 
-            <Pressable style={styles.update} onPress={handleUpdate}>
-              {updating ? (
-                <ActivityIndicator color="#111" />
-              ) : (
-                <Text style={styles.updateText}>Update</Text>
-              )}
-            </Pressable>
+              <Pressable style={styles.update} onPress={handleUpdate}>
+                {updating ? (
+                  <ActivityIndicator color="#111" />
+                ) : (
+                  <Text style={styles.updateText}>Update</Text>
+                )}
+              </Pressable>
+            </View>
           </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end" },
+  overlay: { flex: 1 },
 
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "transparent",
   },
 
   sheet: {
+    flex: 1,
     backgroundColor: "#0B0B0C",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 20,
-    paddingBottom: 30,
+    paddingBottom: 0,
   },
 
   handle: {
@@ -277,15 +265,11 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
 
-  title: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "900",
-    marginBottom: 16,
-  },
+  settingsScroll: { flex: 1, marginHorizontal: -20 },
+  settingsContent: { paddingHorizontal: 20, paddingBottom: 8 },
 
   field: {
-    marginBottom: 16,
+    marginBottom: 24,
   },
 
   label: {
@@ -294,18 +278,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  value: {
-    color: "#aaa",
-  },
-
   rowColors: {
-    gap: 12,
+    gap: 8,
+    paddingHorizontal: 20,
   },
+
+  edgeToEdgePalette: { marginHorizontal: -20 },
 
   colorWrapper: {
     width: 52,
@@ -314,11 +292,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+  previewStage: {
+    flexShrink: 0,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+
   previewWrap: {
-  marginBottom: 18,
-  marginHorizontal: 18,
-  alignItems: "center",
-},
+    flex: 1,
+    alignItems: "stretch",
+    justifyContent: "flex-end",
+    minHeight: 120,
+  },
 
   circle: {
     width: 42,
@@ -336,7 +322,9 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 10,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.surfaceBorder,
   },
 
   cancel: {

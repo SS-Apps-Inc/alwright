@@ -20,11 +20,14 @@ import {
   isPaidPaywallResult,
   presentUpgradePaywall,
 } from "@/features/paywall/revenuecat_paywall";
-
-const WEB_PROFILE_BASE_URL = "https://alwright.cc";
-const PRIVACY_URL = "https://alwright.cc/privacy";
-const TERMS_URL = "https://alwright.cc/terms";
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import {
+  APP_VERSION,
+  EMAIL_PATTERN,
+  PRIVACY_URL,
+  PUBLIC_SITE_URL,
+  SUPPORT_EMAIL_URL,
+  TERMS_URL,
+} from "@/config";
 
 export function useSettingsViewModel() {
   const auth = getAuthState();
@@ -86,7 +89,7 @@ export function useSettingsViewModel() {
 
   const openMyPage = async () => {
     if (userId) {
-      await Linking.openURL(`${WEB_PROFILE_BASE_URL}/${userId}`);
+      await Linking.openURL(`${PUBLIC_SITE_URL}/${userId}`);
     }
   };
 
@@ -94,12 +97,12 @@ export function useSettingsViewModel() {
     router.push("/auth/login");
   }, []);
 
-  const publicProfileUrl = userId ? `${WEB_PROFILE_BASE_URL}/${userId}` : null;
+  const publicProfileUrl = userId ? `${PUBLIC_SITE_URL}/${userId}` : null;
   const appVersionLabel = useMemo(() => {
     const version =
       Application.nativeApplicationVersion ??
       Constants.expoConfig?.version ??
-      "1.0.0";
+      APP_VERSION;
     const build =
       Application.nativeBuildVersion ??
       (Platform.OS === "android"
@@ -109,7 +112,7 @@ export function useSettingsViewModel() {
     return build ? `Version ${version} (${build})` : `Version ${version}`;
   }, []);
   const normalizedExportEmail = exportEmail.trim();
-  const exportEmailValid = EMAIL_RE.test(normalizedExportEmail);
+  const exportEmailValid = EMAIL_PATTERN.test(normalizedExportEmail);
 
   const openDeleteAccount = useCallback(() => {
     setDeleteConfirmText("");
@@ -200,8 +203,7 @@ export function useSettingsViewModel() {
     openMyPage,
     openPrivacy: () => Linking.openURL(PRIVACY_URL),
     openTerms: () => Linking.openURL(TERMS_URL),
-    openContact: () =>
-      Linking.openURL("mailto:support@alwright.cc?subject=App Support"),
+    openContact: () => Linking.openURL(SUPPORT_EMAIL_URL),
     openRateUs: () => { },
     handleSignOut: signOut,
     goToLogin,

@@ -4,6 +4,7 @@ import {
   DEFAULT_POST_LAYOUT_MODE,
   type PostLayoutMode,
 } from "@/features/posts/post_layout";
+import { DEFAULT_POST_STYLE } from "@/config";
 
 export type EditablePostStyle = {
   bgColor: string | null;
@@ -19,10 +20,10 @@ export type MyPostsUpdatePayload = {
 
 export function getEditableStyleFromPost(post: PostUI): EditablePostStyle {
   return {
-    bgColor: post.bgColor ?? "#EAEAEA",
-    bgOpacity: post.bgOpacity ?? 1,
-    bgRadius: post.bgRadius ?? "rounded",
-    fontColor: post.fontColor ?? "#111111",
+    bgColor: post.bgColor ?? DEFAULT_POST_STYLE.backgroundColor,
+    bgOpacity: post.bgOpacity ?? DEFAULT_POST_STYLE.backgroundOpacity,
+    bgRadius: post.bgRadius ?? DEFAULT_POST_STYLE.backgroundRadius,
+    fontColor: post.fontColor ?? DEFAULT_POST_STYLE.fontColor,
   };
 }
 
@@ -34,6 +35,9 @@ export type MyPostsPageSettings = {
   layoutMode: PostLayoutMode;
   profileIconType: ProfileIconType;
   profileLinksEnabled: boolean;
+  countryDiscoveryEnabled: boolean;
+  phoneCountryCode: string | null;
+  phoneCountryFlag: string | null;
   postCopyEnabled: boolean;
 };
 
@@ -44,6 +48,9 @@ export const DEFAULT_MY_POSTS_PAGE_SETTINGS: MyPostsPageSettings = {
   bgOpacity: 1,
   layoutMode: DEFAULT_POST_LAYOUT_MODE,
   profileIconType: "unknown",
-  profileLinksEnabled: false,
+  profileLinksEnabled: true,
+  countryDiscoveryEnabled: true,
+  phoneCountryCode: null,
+  phoneCountryFlag: null,
   postCopyEnabled: true,
 };

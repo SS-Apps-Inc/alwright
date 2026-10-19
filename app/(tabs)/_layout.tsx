@@ -3,22 +3,11 @@ import { Tabs, useRouter } from "expo-router";
 import { Image, Platform, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthState } from "../auth/useAuthState";
+import { colors } from "@/design-system";
+import { media } from "@/config";
 
 
-const ICONS = {
-  home: {
-    active: require("../../assets/tab-icons/home.active.png"),
-    inactive: require("../../assets/tab-icons/home.inactive.png"),
-  },
-  write: {
-    active: require("../../assets/tab-icons/write.active.png"),
-    inactive: require("../../assets/tab-icons/write.inactive.png"),
-  },
-  settings: {
-    active: require("../../assets/tab-icons/setting.active.png"),
-    inactive: require("../../assets/tab-icons/setting.inactive.png"),
-  },
-};
+const ICONS = media.tabs;
 function TabIcon({
   name,
   focused,
@@ -76,8 +65,8 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#FF8A00",
-        tabBarInactiveTintColor: "#919191",
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSubtle,
         tabBarStyle:
           Platform.OS === "web"
             ? ({ display: "none" } as any)
@@ -85,9 +74,10 @@ export default function TabsLayout() {
               height: baseHeight + bottomPad,
               paddingBottom: bottomPad,
               paddingTop: 8,
-              backgroundColor: scheme === "dark" ? "#0b0b0b" : "#ffffff",
+              backgroundColor:
+                scheme === "dark" ? colors.backgroundLower : colors.white,
               borderTopWidth: 0,
-              shadowColor: "#121212",
+              shadowColor: colors.shadow,
               shadowOpacity: 0.08,
               shadowRadius: 6,
               shadowOffset: { width: 0, height: -2 },

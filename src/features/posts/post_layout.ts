@@ -1,33 +1,18 @@
+import {
+  DEFAULT_POST_LAYOUT_MODE_VALUE,
+  POST_LAYOUT_OPTIONS_CONFIG,
+} from "@/config";
+
 export type PostLayoutMode = "list" | "top_70" | "top_50" | "top_30";
 
-export const DEFAULT_POST_LAYOUT_MODE: PostLayoutMode = "top_70";
+export const DEFAULT_POST_LAYOUT_MODE: PostLayoutMode =
+  DEFAULT_POST_LAYOUT_MODE_VALUE;
 
 export const POST_LAYOUT_OPTIONS: {
   mode: PostLayoutMode;
   title: string;
   subtitle: string;
-}[] = [
-  {
-    mode: "list",
-    title: "List",
-    subtitle: "Horizontal post list only.",
-  },
-  {
-    mode: "top_70",
-    title: "70 / 30",
-    subtitle: "Latest post large, list compact.",
-  },
-  {
-    mode: "top_50",
-    title: "50 / 50",
-    subtitle: "Latest post and list balanced.",
-  },
-  {
-    mode: "top_30",
-    title: "30 / 70",
-    subtitle: "Latest post compact, list large.",
-  },
-];
+}[] = POST_LAYOUT_OPTIONS_CONFIG.map((option) => ({ ...option }));
 
 export function normalizePostLayoutMode(value: unknown): PostLayoutMode {
   if (

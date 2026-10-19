@@ -3,10 +3,9 @@ import {
   ensureRevenueCatUserForCurrentSession,
   syncBillingPlanFromRevenueCat,
 } from "@/features/billing/billing_plan";
+import { REVENUECAT_OFFERING_ID } from "@/config";
 
 declare const require: (name: string) => any;
-
-export const REVENUECAT_OFFERING_ID = "alwright.v1";
 
 export type RevenueCatPaywallResult =
   | "cancelled"

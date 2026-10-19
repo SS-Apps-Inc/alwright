@@ -1,8 +1,10 @@
 import React from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
+import { colors } from "@/design-system";
 
 export function PostTextField({
   label,
+  optionalLabel,
   value,
   onChangeText,
   placeholder,
@@ -12,6 +14,7 @@ export function PostTextField({
   inputHeight,
 }: {
   label: string;
+  optionalLabel?: string;
   value: string;
   onChangeText: (t: string) => void;
   placeholder: string;
@@ -23,7 +26,12 @@ export function PostTextField({
   return (
     <View style={{ gap: 8 }}>
       <View style={styles.row}>
-        <Text style={styles.label}>{label}</Text>
+        <View style={styles.labelRow}>
+          {label ? <Text style={styles.label}>{label}</Text> : null}
+          {optionalLabel ? (
+            <Text style={styles.optionalLabel}>{optionalLabel}</Text>
+          ) : null}
+        </View>
         <Text style={styles.counter}>{counterText}</Text>
       </View>
 
@@ -32,7 +40,7 @@ export function PostTextField({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="rgba(255,255,255,0.35)"
+          placeholderTextColor={colors.placeholder}
           style={[styles.input, multiline && styles.inputMultiline]}
           maxLength={maxLength}
           multiline={multiline}
@@ -46,18 +54,20 @@ export function PostTextField({
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
-  label: { color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: "800" },
-  counter: { color: "rgba(255,255,255,0.55)", fontSize: 12, fontWeight: "700" },
+  labelRow: { flexDirection: "row", alignItems: "baseline", gap: 5 },
+  label: { color: colors.textStrongMuted, fontSize: 14, fontWeight: "800" },
+  optionalLabel: { color: colors.placeholder, fontSize: 11, fontWeight: "600" },
+  counter: { color: colors.textFaint, fontSize: 12, fontWeight: "700" },
 
   wrap: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    borderColor: colors.subtleBorder,
+    backgroundColor: colors.fieldBackground,
     paddingHorizontal: 12,
     height: 54,
     justifyContent: "center",
   },
-  input: { color: "#fff", fontSize: 16 },
+  input: { color: colors.text, fontSize: 16 },
   inputMultiline: { paddingTop: 12, paddingBottom: 12, height: "100%" },
 });

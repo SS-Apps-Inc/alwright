@@ -9,9 +9,7 @@ import type { PostsPageCursor } from "@/network/post/postTypes";
 import { withPostDefaultsList } from "@/features/feed/home_posts_defaults";
 import { DEFAULT_MY_POSTS_PAGE_SETTINGS, type MyPostsPageSettings } from "../../../app/edit/my_posts_types";
 import { isListOnlyLayout } from "@/features/posts/post_layout";
-
- 
-const PAGE_SIZE = 30;
+import { PAGINATION } from "@/config";
 
 export function useUserPostsVM(userId: string) {
   const [posts, setPosts] = useState<PostUI[]>([]);
@@ -48,7 +46,7 @@ export function useUserPostsVM(userId: string) {
 
     try {
       const [postsRes] = await Promise.all([
-        apiGetPostsByUserPage(userId, PAGE_SIZE, null),
+        apiGetPostsByUserPage(userId, PAGINATION.publicUserPosts, null),
         loadPageSettings(),
       ]);
 
@@ -72,7 +70,11 @@ export function useUserPostsVM(userId: string) {
     setLoadingMore(true);
 
     try {
-      const res = await apiGetPostsByUserPage(userId, PAGE_SIZE, cursor);
+      const res = await apiGetPostsByUserPage(
+        userId,
+        PAGINATION.publicUserPosts,
+        cursor
+      );
       const mapped = withPostDefaultsList(res.rows.map(mapPostRowToUI));
 
       setPosts((prev) => [...prev, ...mapped]);

@@ -23,6 +23,8 @@ ios/
 dist/
 web-build/
 build/
+builds/*
+!builds/README.md
 coverage/
 
 # Android and iOS signing / service credentials

@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAddPostVM } from "./useAddPostVM";
 import { PostTextField } from "./PostTextField";
+import { colors } from "@/design-system";
 
 export default function AddPostScreen() {
   const insets = useSafeAreaInsets();
@@ -53,10 +54,10 @@ export default function AddPostScreen() {
           ]}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.title}>Write a post</Text>
+          <Text style={styles.title}>Write it down</Text>
 
           <PostTextField
-            label="Description"
+            label=""
             value={vm.description}
             onChangeText={vm.setDescriptionSafe}
             placeholder="Write beyond the thoughts..."
@@ -68,6 +69,7 @@ export default function AddPostScreen() {
 
           <PostTextField
             label="Who says?"
+            optionalLabel="(optional)"
             value={vm.who}
             onChangeText={vm.setWhoSafe}
             placeholder="e.g. Nikola Tesla"
@@ -91,7 +93,7 @@ export default function AddPostScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0b0b0b" },
+  screen: { flex: 1, backgroundColor: colors.backgroundLower },
 
   topBar: {
     height: 86,
@@ -104,7 +106,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  closeText: { color: "#fff", fontSize: 18, fontWeight: "800" },
+  closeText: { color: colors.text, fontSize: 18, fontWeight: "800" },
 
 container: {
   flexGrow: 1,
@@ -113,19 +115,16 @@ container: {
   gap: 14,
 },
 
-  title: { color: "#fff", fontSize: 26, fontWeight: "800", marginBottom: 16 },
-  subtitle: { color: "rgba(255,255,255,0.65)", fontSize: 14, marginBottom: 6 },
+  title: { color: colors.text, fontSize: 26, fontWeight: "800", marginBottom: 16 },
 
   primaryBtn: {
     marginTop: 32,
     height: 54,
     borderRadius: 14,
-    backgroundColor: "#ffffff",
+    backgroundColor: colors.white,
     alignItems: "center",
     justifyContent: "center",
   },
-  primaryText: { color: "#0b0b0b", fontSize: 16, fontWeight: "800" },
+  primaryText: { color: colors.backgroundLower, fontSize: 16, fontWeight: "800" },
   btnDisabled: { opacity: 0.45 },
-
-  helper: { color: "rgba(255,255,255,0.5)", fontSize: 12, lineHeight: 16, marginTop: 6 },
 });

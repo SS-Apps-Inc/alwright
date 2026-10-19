@@ -13,8 +13,11 @@ alter table public.profiles
   add column if not exists my_posts_bg_opacity numeric not null default 1,
   add column if not exists my_posts_layout_mode text not null default 'top_70',
   add column if not exists my_posts_profile_icon_type text not null default 'unknown',
-  add column if not exists my_posts_profile_links_enabled boolean not null default false,
+  add column if not exists my_posts_profile_links_enabled boolean not null default true,
   add column if not exists my_posts_copy_enabled boolean not null default true;
+
+alter table public.profiles
+  alter column my_posts_profile_links_enabled set default true;
 
 do $$
 begin
@@ -265,6 +268,80 @@ as $$
   limit least(greatest(coalesce(p_page_size, 30), 1), 100);
 $$;
 
+drop function if exists public.get_public_posts_random_page(integer, text, text, uuid);
+create or replace function public.get_public_posts_random_page(
+  p_page_size integer,
+  p_seed text,
+  p_cursor_score text default null,
+  p_cursor_id uuid default null
+)
+returns table (
+  id uuid,
+  user_id uuid,
+  description text,
+  who text,
+  created_at_ms bigint,
+  search_terms text[],
+  bg_color text,
+  bg_opacity numeric,
+  radius text,
+  font_color text,
+  profile_icon_type text,
+  profile_links_enabled boolean,
+  post_copy_enabled boolean,
+  random_score text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with ranked_posts as (
+    select
+      p.id,
+      p.user_id,
+      p.description,
+      p.who,
+      p.created_at_ms,
+      p.search_terms,
+      p.bg_color,
+      p.bg_opacity,
+      p.radius,
+      p.font_color,
+      coalesce(pr.my_posts_profile_icon_type, 'unknown') as profile_icon_type,
+      coalesce(pr.my_posts_profile_links_enabled, false) as profile_links_enabled,
+      coalesce(pr.my_posts_copy_enabled, true) as post_copy_enabled,
+      md5(coalesce(p_seed, '') || ':' || p.id::text) as random_score
+    from public.posts p
+    left join public.profiles pr on pr.id = p.user_id
+  )
+  select
+    r.id,
+    r.user_id,
+    r.description,
+    r.who,
+    r.created_at_ms,
+    r.search_terms,
+    r.bg_color,
+    r.bg_opacity,
+    r.radius,
+    r.font_color,
+    r.profile_icon_type,
+    r.profile_links_enabled,
+    r.post_copy_enabled,
+    r.random_score
+  from ranked_posts r
+  where
+    p_cursor_score is null
+    or r.random_score > p_cursor_score
+    or (
+      r.random_score = p_cursor_score
+      and r.id > p_cursor_id
+    )
+  order by r.random_score asc, r.id asc
+  limit least(greatest(coalesce(p_page_size, 30), 1), 100);
+$$;
+
 drop function if exists public.get_public_user_posts_page(uuid, integer, bigint, uuid);
 create or replace function public.get_public_user_posts_page(
   p_user_id uuid,
@@ -323,6 +400,7 @@ as $$
 $$;
 
 grant execute on function public.get_public_posts_page(integer, bigint, uuid) to anon, authenticated;
+grant execute on function public.get_public_posts_random_page(integer, text, text, uuid) to anon, authenticated;
 grant execute on function public.get_public_user_posts_page(uuid, integer, bigint, uuid) to anon, authenticated;
 grant execute on function public.get_public_my_posts_page_settings(uuid) to anon, authenticated;
 grant execute on function public.get_my_posts_page_settings() to authenticated;

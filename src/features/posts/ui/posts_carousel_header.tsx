@@ -40,6 +40,7 @@ type Props = {
   listRef: React.RefObject<FlatList<PostUI> | null>;
 
   showMainPost?: boolean;
+  showMainPublicControls?: boolean;
   showList: boolean;
 
   hasPendingNewPosts?: boolean;
@@ -47,6 +48,10 @@ type Props = {
   onApplyPendingPosts?: () => void;
 
   showSettingsButton?: boolean;
+  emptyTitle?: string;
+  emptyMessage?: string;
+  emptyActionLabel?: string;
+  onEmptyAction?: () => void;
 
   loadMore: () => void;
   goToPage: (page: number) => void;
@@ -77,11 +82,16 @@ export function PostsCarouselHeader({
   currentPage,
   listRef,
   showMainPost = true,
+  showMainPublicControls = true,
   showList,
   hasPendingNewPosts = false,
   pendingNewPostCount = 0,
   onApplyPendingPosts,
   showSettingsButton = false,
+  emptyTitle = "No posts yet",
+  emptyMessage,
+  emptyActionLabel,
+  onEmptyAction,
   loadMore,
   goToPage,
   onListScroll,
@@ -187,7 +197,7 @@ export function PostsCarouselHeader({
                 post={mainPost}
                 showDate={false}
                 showActions={false}
-                showPublicControls
+                showPublicControls={showMainPublicControls}
                 height={displayMainCardHeight}
                 style={{
                   width: displayMainCardWidth,
@@ -205,7 +215,22 @@ export function PostsCarouselHeader({
                 },
               ]}
             >
-              <Text style={styles.emptyText}>No posts yet</Text>
+              <Text style={styles.emptyText}>{emptyTitle}</Text>
+              {emptyMessage ? (
+                <Text style={styles.emptyMessage}>{emptyMessage}</Text>
+              ) : null}
+              {emptyActionLabel && onEmptyAction ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onEmptyAction}
+                  style={({ pressed }) => [
+                    styles.emptyAction,
+                    pressed && styles.emptyActionPressed,
+                  ]}
+                >
+                  <Text style={styles.emptyActionText}>{emptyActionLabel}</Text>
+                </Pressable>
+              ) : null}
             </View>
           )}
         </View>
@@ -323,6 +348,30 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: typography.weight.heavy,
+  },
+  emptyMessage: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+    maxWidth: 290,
+    marginTop: 9,
+    paddingHorizontal: 18,
+  },
+  emptyAction: {
+    minHeight: 44,
+    borderRadius: radii.pill,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginTop: 18,
+  },
+  emptyActionPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
+  emptyActionText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: typography.weight.black,
   },
   listOuter: {
     width: "100%",

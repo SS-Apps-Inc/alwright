@@ -1,5 +1,6 @@
 // use_my_posts_vm.ts
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert } from "react-native";
 import type { PostUI } from "@/network/post/postMappers";
 import { mapPostRowToUI } from "@/network/post/postMappers";
 import type { PostsPageCursor } from "@/network/post/postTypes";
@@ -28,8 +29,11 @@ import {
   presentUpgradePaywall,
   showUpgradeAlert,
 } from "@/features/paywall/revenuecat_paywall";
-
-const PAGE_SIZE = 5;
+import {
+  apiGetMyCountryPreferences,
+  apiUpdateMyCountryDiscovery,
+} from "@/network/profile/profileApi";
+import { PAGINATION } from "@/config";
 
 export function useMyPostsVM() {
   const [posts, setPosts] = useState<PostUI[]>([]);
@@ -61,10 +65,17 @@ export function useMyPostsVM() {
 
   const loadPageSettings = useCallback(async () => {
     try {
-      const row = await apiGetMyPostsPageSettings();
+      const [row, countryPreferences] = await Promise.all([
+        apiGetMyPostsPageSettings(),
+        apiGetMyCountryPreferences(),
+      ]);
       const next = {
         ...mapMyPostsPageSettingsRow(row),
         autoLatest: true,
+        countryDiscoveryEnabled:
+          countryPreferences.countryDiscoveryEnabled,
+        phoneCountryCode: countryPreferences.phoneCountryCode,
+        phoneCountryFlag: countryPreferences.phoneCountryFlag,
       };
 
       console.log("loaded my posts settings:", next);
@@ -85,12 +96,14 @@ export function useMyPostsVM() {
     setInitialLoading(true);
 
     try {
-      const res = await apiGetMyPostsPage(PAGE_SIZE, null);
+      const res = await apiGetMyPostsPage(PAGINATION.myPosts, null);
       const nextPosts = res.rows.map(mapPostRowToUI);
 
       setPosts(nextPosts);
       setCursor(res.nextCursor);
       setHasMore(!!res.nextCursor && nextPosts.length > 0);
+    } catch (error) {
+      console.error("loadInitial failed", error);
     } finally {
       setInitialLoading(false);
     }
@@ -119,14 +132,24 @@ export function useMyPostsVM() {
           layoutMode: next.layoutMode,
           profileIconType: next.profileIconType,
           profileLinksEnabled: next.profileLinksEnabled,
+          countryDiscoveryEnabled: next.countryDiscoveryEnabled,
+          phoneCountryCode: next.phoneCountryCode,
+          phoneCountryFlag: next.phoneCountryFlag,
           postCopyEnabled: next.postCopyEnabled,
         };
 
-        const updatedRow = await apiUpdateMyPostsPageSettings(cleanNext);
+        const [updatedRow, countryPreferences] = await Promise.all([
+          apiUpdateMyPostsPageSettings(cleanNext),
+          apiUpdateMyCountryDiscovery(cleanNext.countryDiscoveryEnabled),
+        ]);
 
         const mapped = {
           ...mapMyPostsPageSettingsRow(updatedRow),
           autoLatest: true,
+          countryDiscoveryEnabled:
+            countryPreferences.countryDiscoveryEnabled,
+          phoneCountryCode: countryPreferences.phoneCountryCode,
+          phoneCountryFlag: countryPreferences.phoneCountryFlag,
         };
 
         setPageSettings(mapped);
@@ -146,7 +169,7 @@ export function useMyPostsVM() {
     setLoadingMore(true);
 
     try {
-      const res = await apiGetMyPostsPage(PAGE_SIZE, cursor);
+      const res = await apiGetMyPostsPage(PAGINATION.myPosts, cursor);
       const nextPosts = res.rows.map(mapPostRowToUI);
 
       if (nextPosts.length === 0) {
@@ -212,6 +235,9 @@ export function useMyPostsVM() {
 
       setSettingsVisible(false);
       setSelectedPost(null);
+    } catch (error: any) {
+      console.error("updatePostStyle failed", error);
+      Alert.alert("Couldn’t update post", error?.message ?? "Please try again.");
     } finally {
       setUpdating(false);
     }

@@ -1,18 +1,17 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { PostUIRadius } from "@/network/post/postMappers";
+import { POST_RADIUS_OPTIONS } from "@/config";
 
 type Props = {
   value: PostUIRadius;
   onChange: (value: PostUIRadius) => void;
 };
 
-const OPTIONS: PostUIRadius[] = ["rectangle", "rounded", "circle"];
-
 export function RadiusSegmentControl({ value, onChange }: Props) {
   return (
     <View style={styles.root}>
-      {OPTIONS.map((item) => {
+      {POST_RADIUS_OPTIONS.map((item) => {
         const selected = item === value;
 
         return (

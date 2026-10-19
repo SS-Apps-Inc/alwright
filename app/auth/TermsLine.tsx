@@ -10,7 +10,7 @@ export function TermsLine({
 }) {
   return (
     <Text style={styles.text}>
-      By continuing, you accept Alwright{" "}
+      By continuing, you accept Alwright&apos;s{" "}
       <Text style={styles.link} onPress={() => Linking.openURL(privacyUrl)}>
         Privacy Policy
       </Text>{" "}

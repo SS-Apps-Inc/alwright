@@ -4,7 +4,7 @@ import {
   type ProfileIconType,
 } from "@/features/profile/profile_icon";
 
-export type PostUIRadius = "rectangle" | "circle" | "rounded";
+export type PostUIRadius = "rectangle" | "circle" | "rounded" | "wavy";
 
 export type PostUI = {
   id: string;
@@ -24,7 +24,12 @@ export type PostUI = {
   postCopyEnabled: boolean;
 };
 function normalizeRadius(value: string | null): PostUIRadius {
-  if (value === "circle" || value === "rounded" || value === "rectangle") {
+  if (
+    value === "circle" ||
+    value === "rounded" ||
+    value === "rectangle" ||
+    value === "wavy"
+  ) {
     return value;
   }
   return "rounded";

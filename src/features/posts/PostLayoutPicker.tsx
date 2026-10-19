@@ -6,14 +6,13 @@ import {
   POST_LAYOUT_OPTIONS,
   type PostLayoutMode,
 } from "@/features/posts/post_layout";
+import { UI_CONSTANTS } from "@/config";
 
 type Props = {
   showOnlyLast: boolean;
   layoutMode: PostLayoutMode;
   onChange: (next: { showOnlyLast: boolean; layoutMode: PostLayoutMode }) => void;
 };
-
-const OPTION_SIZE = 38;
 
 export function PostLayoutPicker({ showOnlyLast, layoutMode, onChange }: Props) {
   return (
@@ -99,8 +98,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   option: {
-    width: OPTION_SIZE,
-    height: OPTION_SIZE,
+    width: UI_CONSTANTS.postLayoutOptionSize,
+    height: UI_CONSTANTS.postLayoutOptionSize,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.surfaceBorder,

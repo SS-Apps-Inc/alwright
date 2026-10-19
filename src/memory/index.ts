@@ -9,4 +9,5 @@ export {
   writeHomeSettingsMemory,
   type HomePostsMemory,
   type HomeSettingsMemory,
+  type HomeSinglePostSource,
 } from "./homePostsMemory";

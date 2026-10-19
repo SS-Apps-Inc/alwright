@@ -4,6 +4,7 @@ import {
   readHomeSettingsMemory,
   writeHomeSettingsMemory,
   type HomeSettingsMemory,
+  type HomeSinglePostSource,
 } from "@/memory";
 import type { PostLayoutMode } from "@/features/posts/post_layout";
 
@@ -58,6 +59,30 @@ export function useHomeSettingsVM() {
     [homeSettings, updateHomeSettings]
   );
 
+  const setSinglePostSource = useCallback(
+    (value: HomeSinglePostSource) => {
+      updateHomeSettings({
+        ...homeSettings,
+        singlePostSource: value,
+      });
+    },
+    [homeSettings, updateHomeSettings]
+  );
+
+  const setFeedCountryCodes = useCallback(
+    (feedCountryCodes: string[]) => {
+      setHomeSettings((previous) => {
+        const next = {
+          ...previous,
+          feedCountryCodes: feedCountryCodes.slice(0, 5),
+        };
+        writeHomeSettingsMemory(next);
+        return next;
+      });
+    },
+    []
+  );
+
   return {
     homeSettings,
     settingsVisible,
@@ -65,6 +90,8 @@ export function useHomeSettingsVM() {
     closeSettings,
     setShowOnlyLastPost,
     setAutoApplyLatestPosts,
+    setSinglePostSource,
+    setFeedCountryCodes,
     setLayoutMode,
   };
 }

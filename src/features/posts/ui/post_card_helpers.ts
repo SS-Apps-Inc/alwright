@@ -1,5 +1,6 @@
 // post_card_helpers.ts
 import { Platform } from "react-native";
+import type { PostUIRadius } from "@/network/post/postMappers";
 
 export function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
@@ -7,10 +8,11 @@ export function clamp(n: number, min: number, max: number) {
 
 export function getContainerRadius(
   size: number,
-  radius: "rectangle" | "circle" | "rounded"
+  radius: PostUIRadius
 ) {
   if (radius === "circle") return size / 2;
   if (radius === "rectangle") return 1;
+  if (radius === "wavy") return 0;
   return 22;
 }
 
@@ -43,7 +45,7 @@ export function getMinDescriptionFontSize() {
 }
 
 export function getMaxDescriptionFontSize() {
-  return Platform.OS === "web" ? 176 : 160;
+  return Platform.OS === "web" ? 276 : 250;
 }
 
 export function getWhoFontSize(width: number, who: string) {
@@ -67,7 +69,7 @@ export function getDateFontSize(width: number, showDate: boolean) {
 export function getShapeInsets(
   width: number,
   height: number,
-  radius: "rectangle" | "circle" | "rounded"
+  radius: PostUIRadius
 ) {
   if (radius === "circle") {
     const size = Math.min(width, height);
@@ -81,6 +83,10 @@ export function getShapeInsets(
 
   if (radius === "rounded") {
     return { left: 16, right: 16, top: 14, bottom: 14 };
+  }
+
+  if (radius === "wavy") {
+    return { left: 22, right: 22, top: 20, bottom: 20 };
   }
 
   return { left: 12, right: 12, top: 10, bottom: 10 };

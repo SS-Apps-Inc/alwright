@@ -465,7 +465,7 @@ begin
     raise exception 'Post style editing is available on Starter and Pro plans.';
   end if;
 
-  if p_radius is not null and p_radius not in ('rectangle', 'circle', 'rounded') then
+  if p_radius is not null and p_radius not in ('rectangle', 'circle', 'rounded', 'wavy') then
     raise exception 'Invalid post radius.';
   end if;
 

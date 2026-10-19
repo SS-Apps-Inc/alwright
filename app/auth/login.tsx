@@ -15,11 +15,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import { usePhoneLoginVM } from "./usePhoneLoginVM";
-import { CanadaPhoneField } from "./CanadaPhoneField";
+import { InternationalPhoneField } from "./InternationalPhoneField";
 import { TermsLine } from "./TermsLine";
-
-const PRIVACY_URL = "https://alwright.cc/privacy";
-const TERMS_URL = "https://alwright.cc/terms";
+import { colors } from "@/design-system/tokens";
+import { PRIVACY_URL, TERMS_URL } from "@/config";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -42,7 +41,7 @@ export default function LoginScreen() {
 
   const referralHeight = referralAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 118],
+    outputRange: [0, 150],
   });
 
   const referralOpacity = referralAnim.interpolate({
@@ -68,21 +67,36 @@ export default function LoginScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.container,
-            { paddingBottom: Math.max(insets.bottom, 16) },
+            {
+              paddingTop: insets.top + 72,
+              paddingBottom: vm.step === "phone" ? 24 : Math.max(insets.bottom, 16),
+            },
           ]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
-          <Text style={styles.title}>Continue with phone</Text>
+          <Text style={styles.title}>
+            {vm.step === "phone" ? "Continue with phone" : "Verify your number"}
+          </Text>
 
           {vm.step === "phone" ? (
             <>
               <Text style={styles.subtitle}>We’ll text you a 6-digit code.</Text>
 
-              <CanadaPhoneField value={vm.formattedLocal} onChangeText={vm.setPhoneInput} />
+              <InternationalPhoneField
+                countryCode={vm.countryCode}
+                value={vm.formattedLocal}
+                onChangeText={vm.setPhoneInput}
+                onSelectCountry={vm.selectCountry}
+              />
+
+              {vm.phoneError ? (
+                <Text style={styles.referralError}>{vm.phoneError}</Text>
+              ) : null}
 
               <Pressable onPress={vm.toggleReferralVisible} style={styles.referralToggle}>
                 <Text style={styles.referralToggleText}>
-                  Referral code?
+                  Referred by?
                 </Text>
               </Pressable>
 
@@ -95,34 +109,34 @@ export default function LoginScreen() {
                   },
                 ]}
               >
-                <Text style={styles.referralHelp}>
-                  Enter the phone number of the person who referred you.
-                </Text>
+                {vm.referralVisible ? (
+                  <>
+                    <Text style={styles.referralHelp}>
+                      Enter the phone number of the person who referred you.
+                    </Text>
 
-                <CanadaPhoneField
-                  value={vm.formattedReferralLocal}
-                  onChangeText={vm.setReferralPhoneInput}
-                />
+                    <InternationalPhoneField
+                      countryCode={vm.referralCountryCode}
+                      value={vm.formattedReferralLocal}
+                      onChangeText={vm.setReferralPhoneInput}
+                      onSelectCountry={vm.selectReferralCountry}
+                      allowAutoFill={false}
+                      placeholder="Referral phone number"
+                    />
 
-                {vm.referralError ? (
-                  <Text style={styles.referralError}>{vm.referralError}</Text>
+                    {vm.referralError ? (
+                      <Text style={styles.referralError}>{vm.referralError}</Text>
+                    ) : null}
+                  </>
                 ) : null}
               </Animated.View>
 
-              <Pressable
-                onPress={vm.sendOtp}
-                disabled={!vm.canSend}
-                style={[styles.primaryBtn, !vm.canSend && styles.btnDisabled]}
-              >
-                <Text style={styles.primaryText}>{vm.loading ? "Sending..." : "Continue"}</Text>
-              </Pressable>
-
-              <TermsLine privacyUrl={PRIVACY_URL} termsUrl={TERMS_URL} />
             </>
           ) : (
             <>
               <Text style={styles.subtitle}>
-                {`Enter the 6-digit code we've sent to ${vm.e164 ?? ""}.`}
+                Enter the 6-digit code we sent to{" "}
+                <Text style={styles.phoneNumber}>{vm.e164 ?? ""}</Text>.
               </Text>
 
               {/* ✅ OTP field (no phone number on the right anymore) */}
@@ -131,49 +145,92 @@ export default function LoginScreen() {
                   value={vm.otp}
                   onChangeText={(t) => vm.setOtp(t.replace(/[^\d]/g, "").slice(0, 6))}
                   keyboardType="number-pad"
-                  placeholder="123456"
-                  placeholderTextColor="rgba(255,255,255,0.35)"
-                  style={styles.otpInput}
+                  placeholder="-  -  -  -  -  -"
+                  placeholderTextColor={colors.placeholder}
+                  style={[styles.otpInput, !vm.otp && styles.otpPlaceholder]}
                   maxLength={6}
+                  autoComplete={Platform.OS === "android" ? "sms-otp" : "one-time-code"}
+                  textContentType="oneTimeCode"
+                  importantForAutofill="yes"
+                  selectionColor={colors.primary}
                   returnKeyType="done"
+                  autoFocus
                 />
               </View>
-
-              <Pressable
-                onPress={vm.verifyOtp}
-                disabled={!vm.canVerify}
-                style={[styles.primaryBtn, !vm.canVerify && styles.btnDisabled]}
-              >
-                <Text style={styles.primaryText}>{vm.loading ? "Verifying..." : "Verify"}</Text>
-              </Pressable>
-
-              {/* ✅ Change phone under Verify */}
-              <Pressable onPress={vm.changePhoneNumber} disabled={vm.loading} style={styles.linkBtn}>
-                <Text style={styles.linkText}>Change phone number</Text>
-              </Pressable>
 
               {/* ✅ Resend with 60s countdown */}
               <Pressable
                 onPress={vm.resendOtp}
                 disabled={!vm.canResend}
-                style={[styles.secondaryBtn, !vm.canResend && styles.btnDisabled]}
+                style={styles.resendBtn}
               >
-                <Text style={styles.secondaryText}>
+                <Text
+                  style={[
+                    styles.resendText,
+                    !vm.canResend && styles.resendTextDisabled,
+                  ]}
+                >
                   {vm.canResend ? "Resend code" : `Resend in ${vm.resendLeft}s`}
                 </Text>
               </Pressable>
             </>
           )}
         </ScrollView>
+
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: Math.max(insets.bottom, 16) },
+          ]}
+        >
+          {vm.step === "phone" ? (
+            <>
+              <Pressable
+                onPress={vm.sendOtp}
+                disabled={!vm.canSend}
+                style={[styles.primaryBtn, !vm.canSend && styles.btnDisabled]}
+              >
+                <Text style={styles.primaryText}>
+                  {vm.loading ? "Sending..." : "Continue"}
+                </Text>
+              </Pressable>
+              <TermsLine privacyUrl={PRIVACY_URL} termsUrl={TERMS_URL} />
+            </>
+          ) : (
+            <>
+              <Pressable
+                onPress={vm.verifyOtp}
+                disabled={!vm.canVerify}
+                style={[styles.primaryBtn, !vm.canVerify && styles.btnDisabled]}
+              >
+                <Text style={styles.primaryText}>
+                  {vm.loading ? "Verifying..." : "Verify"}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={vm.changePhoneNumber}
+                disabled={vm.loading}
+                style={styles.changePhoneBtn}
+              >
+                <Text style={styles.changePhoneText}>Change phone number</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0b0b0b" },
+  screen: { flex: 1, backgroundColor: colors.background },
 
   topBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1,
     height: 86, // base height; real height becomes + safe area via paddingTop
     justifyContent: "flex-end",
   },
@@ -184,51 +241,81 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  closeText: { color: "#fff", fontSize: 18, fontWeight: "800" },
+  closeText: { color: colors.text, fontSize: 18, fontWeight: "800" },
 
   container: {
     flexGrow: 1,
     paddingHorizontal: 18,
     justifyContent: "center",
-    gap: 12,
+    width: "100%",
+    maxWidth: 480,
+    alignSelf: "center",
+    gap: 14,
   },
 
-  title: { color: "#fff", fontSize: 26, fontWeight: "800" },
-  subtitle: { color: "rgba(255,255,255,0.65)", fontSize: 14 },
+  title: {
+    color: colors.text,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+  },
+  subtitle: {
+    color: colors.textMuted,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  phoneNumber: {
+    color: colors.text,
+    fontWeight: "700",
+  },
 
   primaryBtn: {
     marginTop: 6,
-    height: 54,
+    height: 56,
     borderRadius: 14,
-    backgroundColor: "#ffffff",
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  primaryText: { color: "#0b0b0b", fontSize: 16, fontWeight: "800" },
+  primaryText: { color: colors.textInverse, fontSize: 16, fontWeight: "800" },
   btnDisabled: { opacity: 0.45 },
 
   otpWrap: {
     marginTop: 6,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    borderColor: colors.subtleBorder,
+    backgroundColor: colors.fieldBackground,
     paddingHorizontal: 12,
-    height: 54,
+    height: 58,
     justifyContent: "center",
   },
   otpInput: {
-    color: "#fff",
-    fontSize: 18,
-    letterSpacing: 6,
+    color: colors.text,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: 8,
     fontWeight: "800",
+    textAlign: "center",
+    paddingVertical: 0,
   },
+  otpPlaceholder: { letterSpacing: 2 },
 
-  linkBtn: { paddingVertical: 10, alignItems: "center" },
-  linkText: { color: "rgba(255,255,255,0.9)", fontWeight: "800", textDecorationLine: "underline" },
+  resendBtn: { alignSelf: "center", paddingHorizontal: 14, paddingVertical: 8 },
+  resendText: { color: colors.textStrongMuted, fontSize: 14, fontWeight: "700" },
+  resendTextDisabled: { color: colors.textFaint },
 
-  secondaryBtn: { marginTop: 4, alignItems: "center", padding: 10 },
-  secondaryText: { color: "rgba(255,255,255,0.85)", fontWeight: "700" },
+  changePhoneBtn: {
+    minHeight: 46,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  changePhoneText: {
+    color: colors.textSubtle,
+    fontSize: 16,
+    fontWeight: "700",
+  },
 
   referralToggle: {
     alignSelf: "flex-start",
@@ -236,9 +323,9 @@ const styles = StyleSheet.create({
   },
 
   referralToggleText: {
-    color: "rgba(255,255,255,0.9)",
+    color: colors.textFaint,
     fontSize: 14,
-    fontWeight: "800",
+    fontWeight: "700",
     textDecorationLine: "underline",
   },
 
@@ -247,7 +334,7 @@ const styles = StyleSheet.create({
   },
 
   referralHelp: {
-    color: "rgba(255,255,255,0.55)",
+    color: colors.textFaint,
     fontSize: 12,
     fontWeight: "600",
     marginBottom: 8,
@@ -255,10 +342,19 @@ const styles = StyleSheet.create({
   },
 
   referralError: {
-    color: "#ff6b6b",
+    color: colors.error,
     fontSize: 12,
     fontWeight: "700",
     marginTop: 6,
-    
+  },
+  footer: {
+    width: "100%",
+    maxWidth: 480,
+    alignSelf: "center",
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 16,
+    gap: 10,
+    backgroundColor: colors.background,
   },
 });

@@ -10,6 +10,7 @@ function canUseWebStorage() {
 export const publicMemory = {
   getItem(key: string): Maybe<string> {
     try {
+      if (Platform.OS !== "web") return SecureStore.getItem(key);
       if (!canUseWebStorage()) return null;
       return window.localStorage.getItem(key);
     } catch {
@@ -19,6 +20,10 @@ export const publicMemory = {
 
   setItem(key: string, value: string): void {
     try {
+      if (Platform.OS !== "web") {
+        SecureStore.setItem(key, value);
+        return;
+      }
       if (!canUseWebStorage()) return;
       window.localStorage.setItem(key, value);
     } catch {}
@@ -26,6 +31,10 @@ export const publicMemory = {
 
   removeItem(key: string): void {
     try {
+      if (Platform.OS !== "web") {
+        void SecureStore.deleteItemAsync(key);
+        return;
+      }
       if (!canUseWebStorage()) return;
       window.localStorage.removeItem(key);
     } catch {}
